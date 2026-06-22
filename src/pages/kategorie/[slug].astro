@@ -73,6 +73,8 @@ const categoryName = categoryMap[slug!] || slug;
               alt={exercise.data.title}
               loading={idx < 8 ? 'eager' : 'lazy'}
               decoding="async"
+              width="600"
+              height="450"
             />
             <div class="exercise-name">{exercise.data.title}</div>
           </div>
@@ -114,14 +116,24 @@ const categoryName = categoryMap[slug!] || slug;
         })(cards[j], j);
       }
 
-      // Image error fallback
+      // Image load/error handling
       var imgs = document.querySelectorAll('.exercise-card img');
       for (var k = 0; k < imgs.length; k++) {
-        imgs[k].addEventListener('error', function () {
-          this.style.backgroundColor = '#2a2a2a';
-          this.style.padding = '20px';
-          this.alt = 'Bild nicht gefunden';
-        });
+        if (imgs[k].complete) {
+          imgs[k].classList.add('loaded');
+        } else {
+          imgs[k].addEventListener('load', function () {
+            this.classList.add('loaded');
+          });
+          imgs[k].addEventListener('error', function () {
+            this.classList.add('loaded');
+            this.style.display = 'none';
+            var placeholder = document.createElement('div');
+            placeholder.style.cssText = 'width:100%;aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;background:#2a2a2a;color:#888;font-size:13px;letter-spacing:0.5px;';
+            placeholder.textContent = 'Bild nicht verfügbar';
+            this.parentNode.insertBefore(placeholder, this);
+          });
+        }
       }
     })();
   </script>

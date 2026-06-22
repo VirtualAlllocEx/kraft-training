@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;900&display=swap');
-
 :root {
   --accent: #D4FE00;
   --accent-red: #FF464B;
@@ -8,7 +6,7 @@
   --bg-card: #1e1e1e;
   --text: #FFFFFF;
   --text-muted: #999999;
-  --text-dim: #666666;
+  --text-dim: #888888;
   --border: #333333;
   --input-bg: #303030;
   --max-w-xl: 1700px;
@@ -30,6 +28,21 @@ html {
   scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 body {
@@ -110,7 +123,7 @@ a:hover {
   font-size: 14px;
   font-weight: 300;
   letter-spacing: 0.75px;
-  transition: all 0.2s ease;
+  transition: color 0.2s ease, border-color 0.2s ease;
 }
 
 .link:hover {
@@ -127,7 +140,7 @@ a:hover {
   font-size: 20px;
   line-height: 1;
   display: inline-block;
-  transition: all 0.2s ease;
+  transition: letter-spacing 0.2s ease, color 0.2s ease, border-color 0.2s ease;
   position: relative;
 }
 
@@ -146,8 +159,16 @@ a:hover {
   z-index: 9999;
   mix-blend-mode: screen;
   opacity: 0.7;
+  top: 0;
+  left: 0;
   transform: translate(-50%, -50%);
   transition: width 0.2s, height 0.2s;
+  will-change: transform;
+}
+
+#circle.hover {
+  width: 60px;
+  height: 60px;
 }
 
 /* --- Header --- */
@@ -158,7 +179,7 @@ a:hover {
   right: 0;
   z-index: 100;
   padding: 20px 0;
-  transition: all 0.3s ease;
+  transition: background-color 0.3s ease, padding 0.3s ease, box-shadow 0.3s ease;
 }
 
 .site-header.scrolled {
@@ -198,13 +219,15 @@ a:hover {
 /* --- Burger Menu --- */
 .burger {
   position: relative;
-  width: 30px;
-  height: 20px;
+  width: 44px;
+  height: 44px;
   cursor: pointer;
   z-index: 110;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 7px;
 }
 
 .burger span {
@@ -448,7 +471,7 @@ a:hover {
   justify-content: flex-end;
   min-height: 200px;
   overflow: hidden;
-  transition: all 0.4s ease;
+  transition: border-color 0.4s ease, transform 0.4s ease, box-shadow 0.4s ease;
 }
 
 .category-card::before {
@@ -556,7 +579,7 @@ a:hover {
   border: 1px solid var(--border);
   overflow: hidden;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
   position: relative;
 }
 
@@ -770,8 +793,9 @@ html {
   animation: shimmer 1.5s infinite linear;
 }
 
-.exercise-card img[src]:not([src=""]) {
+.exercise-card img.loaded {
   animation: none;
+  background-image: none;
 }
 
 @keyframes shimmer {

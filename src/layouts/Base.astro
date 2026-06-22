@@ -45,7 +45,7 @@ const currentPath = Astro.url.pathname;
   <header class="site-header" id="siteHeader">
     <div class="header-inner">
       <a href="/" class="site-logo"><span>KRAFT.</span>TRAINING</a>
-      <button class="burger" id="burgerBtn" aria-label="Menü öffnen" type="button">
+      <button class="burger" id="burgerBtn" aria-label="Menü öffnen" aria-expanded="false" aria-controls="navOverlay" type="button">
         <span></span>
         <span></span>
         <span></span>
@@ -54,7 +54,7 @@ const currentPath = Astro.url.pathname;
   </header>
 
   <!-- Full-screen navigation overlay -->
-  <nav class="nav-overlay" id="navOverlay">
+  <nav class="nav-overlay" id="navOverlay" aria-hidden="true">
     <ul class="nav-links">
       <li>
         <a href="/" class={currentPath === '/' ? 'active' : ''}>STARTSEITE</a>
@@ -115,6 +115,8 @@ const currentPath = Astro.url.pathname;
         nav.classList.toggle('open');
         document.body.style.overflow = isOpen ? 'hidden' : '';
         burger.setAttribute('aria-label', isOpen ? 'Menü schließen' : 'Menü öffnen');
+        burger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        nav.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
       });
 
       var navLinks = document.querySelectorAll('.nav-links a');
@@ -124,6 +126,8 @@ const currentPath = Astro.url.pathname;
           nav.classList.remove('open');
           document.body.style.overflow = '';
           burger.setAttribute('aria-label', 'Menü öffnen');
+          burger.setAttribute('aria-expanded', 'false');
+          nav.setAttribute('aria-hidden', 'true');
         });
       }
 
@@ -160,27 +164,28 @@ const currentPath = Astro.url.pathname;
       var circle = document.getElementById('circle');
       if (window.innerWidth > 1100 && circle) {
         var mx = -100, my = -100;
+        var rafId = 0;
+
+        function updateCursor() {
+          circle.style.transform = 'translate(calc(' + mx + 'px - 50%), calc(' + my + 'px - 50%))';
+          rafId = 0;
+        }
+
         document.addEventListener('mousemove', function (e) {
           mx = e.clientX;
           my = e.clientY;
+          if (!rafId) {
+            rafId = requestAnimationFrame(updateCursor);
+          }
         }, { passive: true });
-
-        function cursorLoop() {
-          circle.style.left = mx + 'px';
-          circle.style.top = my + 'px';
-          requestAnimationFrame(cursorLoop);
-        }
-        cursorLoop();
 
         var interactives = document.querySelectorAll('a, button, .exercise-card');
         for (var j = 0; j < interactives.length; j++) {
           interactives[j].addEventListener('mouseenter', function () {
-            circle.style.width = '60px';
-            circle.style.height = '60px';
+            circle.classList.add('hover');
           });
           interactives[j].addEventListener('mouseleave', function () {
-            circle.style.width = '40px';
-            circle.style.height = '40px';
+            circle.classList.remove('hover');
           });
         }
       } else if (circle) {
@@ -220,9 +225,12 @@ const currentPath = Astro.url.pathname;
       function showLbImage(idx) {
         if (idx < 0 || idx >= lbImages.length) return;
         lbIndex = idx;
+        window.lbIndex = idx;
         lightboxImg.src = lbImages[idx].src;
         lightboxImg.alt = lbImages[idx].title;
         lightboxTitle.textContent = lbImages[idx].title;
+        lightbox.classList.add('open');
+        document.body.style.overflow = 'hidden';
         updateLbArrows();
       }
 
@@ -286,6 +294,8 @@ const currentPath = Astro.url.pathname;
           nav.classList.remove('open');
           document.body.style.overflow = '';
           burger.setAttribute('aria-label', 'Menü öffnen');
+          burger.setAttribute('aria-expanded', 'false');
+          nav.setAttribute('aria-hidden', 'true');
         }
       });
 
