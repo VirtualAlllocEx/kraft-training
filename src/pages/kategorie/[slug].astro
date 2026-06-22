@@ -1,0 +1,129 @@
+---
+import Base from '../../layouts/Base.astro';
+import { getCollection } from 'astro:content';
+
+const categoryMap: Record<string, string> = {
+  aufwaermen: 'Aufwärmen',
+  passspiel: 'Passspiel',
+  torabschluss: 'Torabschluss',
+  spielform: 'Spielform',
+  halle: 'Halle',
+  kondition: 'Kondition',
+};
+
+export async function getStaticPaths() {
+  const exercises = await getCollection('uebungen');
+  const slugs = ['aufwaermen', 'passspiel', 'torabschluss', 'spielform', 'halle', 'kondition'];
+
+  return slugs.map(slug => {
+    const filtered = exercises
+      .filter(e => e.data.category === slug)
+      .sort((a, b) => {
+        const orderDiff = (a.data.order ?? 0) - (b.data.order ?? 0);
+        if (orderDiff !== 0) return orderDiff;
+        return a.data.title.localeCompare(b.data.title, 'de');
+      });
+
+    return {
+      params: { slug },
+      props: { exercises: filtered },
+    };
+  });
+}
+
+const { slug } = Astro.params;
+const { exercises } = Astro.props;
+const categoryName = categoryMap[slug!] || slug;
+---
+
+<Base title={categoryName} description={`${categoryName} – ${exercises.length} Übungen`}>
+
+  <div class="container-lg">
+    <div class="exercise-header">
+      <h1>{categoryName}</h1>
+      <div class="exercise-meta">
+        <span class="exercise-count">{exercises.length} {exercises.length === 1 ? 'Übung' : 'Übungen'}</span>
+        <a href="/" class="back-link">&larr; ALLE KATEGORIEN</a>
+      </div>
+    </div>
+
+    {exercises.length === 0 ? (
+      <div style="padding: 60px 0; text-align: center;">
+        <p style="color: var(--text-muted); font-size: 18px;">
+          Noch keine Übungen in dieser Kategorie.
+        </p>
+        <p style="color: var(--text-dim); margin-top: 10px;">
+          Füge Übungen über den <a href="/admin/" class="link-bold" style="font-size: 16px;">Admin-Bereich</a> hinzu.
+        </p>
+      </div>
+    ) : (
+      <div class="exercise-grid">
+        {exercises.map((exercise, idx) => (
+          <div
+            class="exercise-card"
+            data-src={exercise.data.image}
+            data-title={exercise.data.title}
+            data-index={idx}
+            role="button"
+            tabindex="0"
+            aria-label={`${exercise.data.title} vergrößern`}
+          >
+            <img
+              src={exercise.data.image}
+              alt={exercise.data.title}
+              loading={idx < 8 ? 'eager' : 'lazy'}
+              decoding="async"
+            />
+            <div class="exercise-name">{exercise.data.title}</div>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+
+  <script is:inline>
+    (function () {
+      var cards = document.querySelectorAll('.exercise-card[data-src]');
+      if (!cards.length) return;
+
+      var images = [];
+      for (var i = 0; i < cards.length; i++) {
+        images.push({
+          src: cards[i].getAttribute('data-src'),
+          title: cards[i].getAttribute('data-title')
+        });
+      }
+
+      if (typeof window.setLbImages === 'function') {
+        window.setLbImages(images);
+      }
+
+      for (var j = 0; j < cards.length; j++) {
+        (function (card, idx) {
+          card.addEventListener('click', function () {
+            if (typeof window.setLbIndex === 'function') window.setLbIndex(idx);
+            if (typeof window.showLbImage === 'function') window.showLbImage(idx);
+          });
+          card.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              if (typeof window.setLbIndex === 'function') window.setLbIndex(idx);
+              if (typeof window.showLbImage === 'function') window.showLbImage(idx);
+            }
+          });
+        })(cards[j], j);
+      }
+
+      // Image error fallback
+      var imgs = document.querySelectorAll('.exercise-card img');
+      for (var k = 0; k < imgs.length; k++) {
+        imgs[k].addEventListener('error', function () {
+          this.style.backgroundColor = '#2a2a2a';
+          this.style.padding = '20px';
+          this.alt = 'Bild nicht gefunden';
+        });
+      }
+    })();
+  </script>
+
+</Base>

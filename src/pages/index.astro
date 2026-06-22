@@ -1,0 +1,331 @@
+---
+import Base from '../layouts/Base.astro';
+import { getCollection } from 'astro:content';
+
+const allExercises = await getCollection('uebungen');
+
+const categoryInfo = [
+  { slug: 'aufwaermen', name: 'Aufwärmen', number: '01' },
+  { slug: 'passspiel', name: 'Passspiel', number: '02' },
+  { slug: 'torabschluss', name: 'Torabschluss', number: '03' },
+  { slug: 'spielform', name: 'Spielform', number: '04' },
+  { slug: 'halle', name: 'Halle', number: '05' },
+  { slug: 'kondition', name: 'Kondition', number: '06' },
+];
+
+const categories = categoryInfo.map(cat => ({
+  ...cat,
+  count: allExercises.filter(e => e.data.category === cat.slug).length,
+}));
+
+const totalCount = allExercises.length;
+---
+
+<Base title="Startseite" description="Trainingsübungen Bibliothek - Alle Übungen auf einen Blick">
+
+  <section class="hero">
+    <div class="hero-bg-text">TRAINING</div>
+    <div class="hero-content">
+      <h1 class="hero-title">
+        <span class="hero-line hero-line--1">TRAININGS</span>
+        <span class="hero-line hero-line--2"><span class="accent"><span>ÜBUNGEN</span></span></span>
+      </h1>
+      <p class="hero-subtitle">Deine Übungsbibliothek</p>
+      <p class="hero-count">{totalCount} Übungen in {categories.length} Kategorien</p>
+    </div>
+  </section>
+
+  <section class="categories-section">
+    <div class="container-lg">
+      <div class="section-heading">
+        <h2>KATEGORIEN</h2>
+        <p>Wähle eine Kategorie um die Übungen zu sehen</p>
+      </div>
+      <div class="category-grid">
+        {categories.map(cat => (
+          <a href={`/kategorie/${cat.slug}/`} class="category-card">
+            <span class="category-number">{cat.number}</span>
+            <div class="category-card-content">
+              <h3>{cat.name}</h3>
+              <span class="category-count">
+                {cat.count} {cat.count === 1 ? 'Übung' : 'Übungen'}
+              </span>
+            </div>
+            <span class="category-arrow">&rarr;</span>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+</Base>
+
+<style>
+  /* --- Hero overrides for homepage --- */
+  .hero {
+    min-height: 85vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    padding: 120px 20px 80px;
+  }
+
+  .hero-content {
+    text-align: center;
+    position: relative;
+    z-index: 1;
+  }
+
+  .hero-title {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  .hero-line {
+    display: block;
+    font-family: 'Inter', sans-serif;
+    font-weight: 900;
+    line-height: 0.95;
+    letter-spacing: -2px;
+  }
+
+  .hero-line--1 {
+    font-size: clamp(50px, 10vw, 120px);
+    color: var(--text);
+    animation: glitchIn 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  }
+
+  .hero-line--2 {
+    font-size: clamp(50px, 10vw, 120px);
+    animation: glitchIn 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.15s forwards;
+    opacity: 0;
+  }
+
+  @keyframes glitchIn {
+    0% {
+      opacity: 0;
+      transform: translateX(-20px);
+      filter: blur(4px);
+    }
+    20% {
+      opacity: 0.6;
+      transform: translateX(8px);
+      filter: blur(2px);
+    }
+    40% {
+      opacity: 0.3;
+      transform: translateX(-5px);
+      filter: blur(0);
+    }
+    60% {
+      opacity: 0.8;
+      transform: translateX(3px);
+    }
+    80% {
+      opacity: 0.9;
+      transform: translateX(-1px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateX(0);
+      filter: blur(0);
+    }
+  }
+
+  .hero-subtitle {
+    font-size: clamp(16px, 2vw, 22px);
+    font-weight: 300;
+    color: var(--text-muted);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-top: 30px;
+    animation: fadeUp 0.5s ease 0.8s both;
+  }
+
+  .hero-count {
+    font-size: 13px;
+    font-weight: 300;
+    color: var(--text-dim);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-top: 12px;
+    animation: fadeUp 0.5s ease 1s both;
+  }
+
+  @keyframes fadeUp {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* --- Category cards overrides --- */
+  .category-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+
+  .category-card {
+    position: relative;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 40px 30px;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    min-height: 140px;
+    overflow: hidden;
+    transition: all 0.4s ease;
+  }
+
+  .category-card::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 3px;
+    height: 100%;
+    background-color: var(--accent);
+    transform: scaleY(0);
+    transform-origin: top;
+    transition: transform 0.4s ease;
+  }
+
+  .category-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(212, 254, 0, 0.03) 0%, transparent 60%);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+
+  .category-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-4px);
+    box-shadow: 0 10px 40px rgba(212, 254, 0, 0.05);
+  }
+
+  .category-card:hover::before {
+    transform: scaleY(1);
+  }
+
+  .category-card:hover::after {
+    opacity: 1;
+  }
+
+  .category-number {
+    font-family: 'Inter', sans-serif;
+    font-weight: 900;
+    font-size: 48px;
+    line-height: 1;
+    color: rgba(255, 255, 255, 0.05);
+    flex-shrink: 0;
+    width: 70px;
+    text-align: center;
+    transition: color 0.4s ease;
+    position: relative;
+    z-index: 1;
+  }
+
+  .category-card:hover .category-number {
+    color: rgba(212, 254, 0, 0.12);
+  }
+
+  .category-card-content {
+    flex: 1;
+    position: relative;
+    z-index: 1;
+  }
+
+  .category-card-content h3 {
+    font-size: clamp(22px, 3vw, 32px);
+    font-weight: 900;
+    color: var(--text);
+    margin-bottom: 6px;
+    transition: color 0.3s ease;
+    letter-spacing: 1px;
+    line-height: 1.1;
+  }
+
+  .category-card:hover .category-card-content h3 {
+    color: var(--accent);
+  }
+
+  .category-count {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-weight: 300;
+    letter-spacing: 0.5px;
+  }
+
+  .category-arrow {
+    font-size: 24px;
+    color: var(--text-dim);
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+  }
+
+  .category-card:hover .category-arrow {
+    color: var(--accent);
+    transform: translateX(6px);
+  }
+
+  /* --- Responsive --- */
+  @media (max-width: 1100px) {
+    .category-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 700px) {
+    .hero {
+      min-height: 65vh;
+      padding: 100px 20px 60px;
+    }
+
+    .hero-line--1,
+    .hero-line--2 {
+      letter-spacing: -1px;
+    }
+
+    .category-grid {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .category-card {
+      min-height: 100px;
+      padding: 28px 20px;
+      gap: 16px;
+    }
+
+    .category-number {
+      font-size: 36px;
+      width: 50px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .hero-subtitle {
+      letter-spacing: 1px;
+      font-size: 13px;
+    }
+
+    .hero-count {
+      font-size: 11px;
+    }
+  }
+</style>

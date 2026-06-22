@@ -1,0 +1,303 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description = 'Trainingsübungen Bibliothek für Fußballtrainer' } = Astro.props;
+
+const categories = [
+  { slug: 'aufwaermen', name: 'Aufwärmen' },
+  { slug: 'passspiel', name: 'Passspiel' },
+  { slug: 'torabschluss', name: 'Torabschluss' },
+  { slug: 'spielform', name: 'Spielform' },
+  { slug: 'halle', name: 'Halle' },
+  { slug: 'kondition', name: 'Kondition' },
+];
+
+const currentPath = Astro.url.pathname;
+---
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content={description} />
+  <meta name="theme-color" content="#131313" />
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;900&display=swap" rel="stylesheet" />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>{title} | KRAFT.TRAINING</title>
+</head>
+<body>
+
+  <a href="#main-content" class="skip-link">Zum Inhalt springen</a>
+  <span id="circle"></span>
+
+  <!-- Fixed header -->
+  <header class="site-header" id="siteHeader">
+    <div class="header-inner">
+      <a href="/" class="site-logo"><span>KRAFT.</span>TRAINING</a>
+      <button class="burger" id="burgerBtn" aria-label="Menü öffnen" type="button">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Full-screen navigation overlay -->
+  <nav class="nav-overlay" id="navOverlay">
+    <ul class="nav-links">
+      <li>
+        <a href="/" class={currentPath === '/' ? 'active' : ''}>STARTSEITE</a>
+      </li>
+      {categories.map(cat => (
+        <li>
+          <a
+            href={`/kategorie/${cat.slug}/`}
+            class={currentPath.includes(cat.slug) ? 'active' : ''}
+          >
+            {cat.name.toUpperCase()}
+          </a>
+        </li>
+      ))}
+    </ul>
+    <div class="nav-bottom">
+      <a href="/admin/" target="_blank" rel="noopener">ADMIN</a>
+    </div>
+  </nav>
+
+  <!-- Page content -->
+  <main id="main-content">
+    <slot />
+  </main>
+
+  <!-- Scroll to top button -->
+  <button class="scroll-top" id="scrollTop" aria-label="Nach oben scrollen" type="button">↑</button>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <a href="/" class="footer-logo"><span>KRAFT.</span>TRAINING</a>
+      <p class="footer-text">TRAININGSÜBUNGEN BIBLIOTHEK</p>
+      <div class="footer-links">
+        <a href="/admin/" target="_blank" rel="noopener">Admin</a>
+        <a href="https://kraftader.at" target="_blank" rel="noopener">kraftader.at</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Lightbox overlay -->
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Bild vergrößern">
+    <button class="lightbox-close" id="lightboxClose" aria-label="Schließen">&times;</button>
+    <button class="lightbox-prev" id="lightboxPrev" aria-label="Vorheriges Bild">&#8249;</button>
+    <img id="lightboxImg" src="" alt="" />
+    <button class="lightbox-next" id="lightboxNext" aria-label="Nächstes Bild">&#8250;</button>
+    <div class="lightbox-title" id="lightboxTitle"></div>
+  </div>
+
+  <script is:inline>
+    (function () {
+      // --- Burger menu toggle ---
+      var burger = document.getElementById('burgerBtn');
+      var nav = document.getElementById('navOverlay');
+
+      burger.addEventListener('click', function () {
+        var isOpen = burger.classList.toggle('open');
+        nav.classList.toggle('open');
+        document.body.style.overflow = isOpen ? 'hidden' : '';
+        burger.setAttribute('aria-label', isOpen ? 'Menü schließen' : 'Menü öffnen');
+      });
+
+      var navLinks = document.querySelectorAll('.nav-links a');
+      for (var i = 0; i < navLinks.length; i++) {
+        navLinks[i].addEventListener('click', function () {
+          burger.classList.remove('open');
+          nav.classList.remove('open');
+          document.body.style.overflow = '';
+          burger.setAttribute('aria-label', 'Menü öffnen');
+        });
+      }
+
+      // --- Scroll: header + scroll-to-top ---
+      var header = document.getElementById('siteHeader');
+      var scrollTopBtn = document.getElementById('scrollTop');
+      var scrollTicking = false;
+
+      window.addEventListener('scroll', function () {
+        if (!scrollTicking) {
+          requestAnimationFrame(function () {
+            var y = window.scrollY;
+            if (y > 80) {
+              header.classList.add('scrolled');
+            } else {
+              header.classList.remove('scrolled');
+            }
+            if (y > 400) {
+              scrollTopBtn.classList.add('visible');
+            } else {
+              scrollTopBtn.classList.remove('visible');
+            }
+            scrollTicking = false;
+          });
+          scrollTicking = true;
+        }
+      }, { passive: true });
+
+      scrollTopBtn.addEventListener('click', function () {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+
+      // --- Custom cursor (desktop only) ---
+      var circle = document.getElementById('circle');
+      if (window.innerWidth > 1100 && circle) {
+        var mx = -100, my = -100;
+        document.addEventListener('mousemove', function (e) {
+          mx = e.clientX;
+          my = e.clientY;
+        }, { passive: true });
+
+        function cursorLoop() {
+          circle.style.left = mx + 'px';
+          circle.style.top = my + 'px';
+          requestAnimationFrame(cursorLoop);
+        }
+        cursorLoop();
+
+        var interactives = document.querySelectorAll('a, button, .exercise-card');
+        for (var j = 0; j < interactives.length; j++) {
+          interactives[j].addEventListener('mouseenter', function () {
+            circle.style.width = '60px';
+            circle.style.height = '60px';
+          });
+          interactives[j].addEventListener('mouseleave', function () {
+            circle.style.width = '40px';
+            circle.style.height = '40px';
+          });
+        }
+      } else if (circle) {
+        circle.style.display = 'none';
+      }
+
+      // --- Lightbox with prev/next + touch swipe ---
+      var lightbox = document.getElementById('lightbox');
+      var lightboxImg = document.getElementById('lightboxImg');
+      var lightboxTitle = document.getElementById('lightboxTitle');
+      var lightboxClose = document.getElementById('lightboxClose');
+      var lightboxPrev = document.getElementById('lightboxPrev');
+      var lightboxNext = document.getElementById('lightboxNext');
+
+      var lbImages = [];
+      var lbIndex = -1;
+
+      function openLightbox(src, title) {
+        lightboxImg.src = src;
+        lightboxImg.alt = title || '';
+        lightboxTitle.textContent = title || '';
+        lightbox.classList.add('open');
+        document.body.style.overflow = 'hidden';
+        updateLbArrows();
+      }
+
+      function closeLightbox() {
+        lightbox.classList.remove('open');
+        document.body.style.overflow = '';
+        setTimeout(function () {
+          if (!lightbox.classList.contains('open')) {
+            lightboxImg.src = '';
+          }
+        }, 350);
+      }
+
+      function showLbImage(idx) {
+        if (idx < 0 || idx >= lbImages.length) return;
+        lbIndex = idx;
+        lightboxImg.src = lbImages[idx].src;
+        lightboxImg.alt = lbImages[idx].title;
+        lightboxTitle.textContent = lbImages[idx].title;
+        updateLbArrows();
+      }
+
+      function updateLbArrows() {
+        if (lbImages.length <= 1) {
+          lightboxPrev.style.display = 'none';
+          lightboxNext.style.display = 'none';
+        } else {
+          lightboxPrev.style.display = lbIndex > 0 ? 'flex' : 'none';
+          lightboxNext.style.display = lbIndex < lbImages.length - 1 ? 'flex' : 'none';
+        }
+      }
+
+      lightboxPrev.addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (lbIndex > 0) showLbImage(lbIndex - 1);
+      });
+
+      lightboxNext.addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (lbIndex < lbImages.length - 1) showLbImage(lbIndex + 1);
+      });
+
+      lightboxClose.addEventListener('click', function (e) {
+        e.stopPropagation();
+        closeLightbox();
+      });
+
+      lightbox.addEventListener('click', function (e) {
+        if (e.target === lightbox) closeLightbox();
+      });
+
+      // Touch swipe support for lightbox
+      var touchStartX = 0;
+      var touchStartY = 0;
+
+      lightbox.addEventListener('touchstart', function (e) {
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartY = e.changedTouches[0].screenY;
+      }, { passive: true });
+
+      lightbox.addEventListener('touchend', function (e) {
+        var dx = e.changedTouches[0].screenX - touchStartX;
+        var dy = e.changedTouches[0].screenY - touchStartY;
+        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
+          if (dx < 0 && lbIndex < lbImages.length - 1) {
+            showLbImage(lbIndex + 1);
+          } else if (dx > 0 && lbIndex > 0) {
+            showLbImage(lbIndex - 1);
+          }
+        }
+      }, { passive: true });
+
+      document.addEventListener('keydown', function (e) {
+        if (lightbox.classList.contains('open')) {
+          if (e.key === 'Escape') { closeLightbox(); return; }
+          if (e.key === 'ArrowRight' && lbIndex < lbImages.length - 1) { showLbImage(lbIndex + 1); return; }
+          if (e.key === 'ArrowLeft' && lbIndex > 0) { showLbImage(lbIndex - 1); return; }
+        } else if (e.key === 'Escape' && nav.classList.contains('open')) {
+          burger.classList.remove('open');
+          nav.classList.remove('open');
+          document.body.style.overflow = '';
+          burger.setAttribute('aria-label', 'Menü öffnen');
+        }
+      });
+
+      // Expose globally
+      window.openLightbox = openLightbox;
+      window.lbImages = lbImages;
+      window.lbIndex = lbIndex;
+      window.showLbImage = showLbImage;
+      window.setLbImages = function (images) { lbImages = images; window.lbImages = images; };
+      window.setLbIndex = function (idx) { lbIndex = idx; window.lbIndex = idx; };
+    })();
+  </script>
+
+</body>
+</html>

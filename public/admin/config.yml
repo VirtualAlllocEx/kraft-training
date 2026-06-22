@@ -1,0 +1,45 @@
+locale: 'de'
+
+backend:
+  name: git-gateway
+  branch: main
+
+media_folder: 'public/images/uebungen'
+public_folder: '/images/uebungen'
+
+collections:
+  - name: 'uebungen'
+    label: 'Übungen'
+    label_singular: 'Übung'
+    folder: 'src/data/uebungen'
+    create: true
+    delete: true
+    slug: '{{slug}}'
+    extension: 'md'
+    format: 'frontmatter'
+    fields:
+      - label: 'Name der Übung'
+        name: 'title'
+        widget: 'string'
+        required: true
+      - label: 'Kategorie'
+        name: 'category'
+        widget: 'select'
+        required: true
+        options:
+          - { label: 'Aufwärmen', value: 'aufwaermen' }
+          - { label: 'Passspiel', value: 'passspiel' }
+          - { label: 'Torabschluss', value: 'torabschluss' }
+          - { label: 'Spielform', value: 'spielform' }
+          - { label: 'Halle', value: 'halle' }
+          - { label: 'Kondition', value: 'kondition' }
+      - label: 'Übungsbild'
+        name: 'image'
+        widget: 'image'
+        required: true
+      - label: 'Reihenfolge'
+        name: 'order'
+        widget: 'number'
+        default: 0
+        required: false
+        value_type: 'int'
