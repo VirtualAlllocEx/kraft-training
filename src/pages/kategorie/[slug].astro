@@ -75,6 +75,7 @@ const categoryName = categoryMap[slug!] || slug;
               decoding="async"
               width="600"
               height="450"
+              fetchpriority={idx < 4 ? 'high' : 'auto'}
             />
             <div class="exercise-name">{exercise.data.title}</div>
           </div>
@@ -96,19 +97,25 @@ const categoryName = categoryMap[slug!] || slug;
         });
       }
 
+      // CRITICAL FIX: stash images for Base.astro to pick up if it hasn't initialized yet
       if (typeof window.setLbImages === 'function') {
         window.setLbImages(images);
+      } else {
+        window._pendingLbImages = images;
       }
 
       for (var j = 0; j < cards.length; j++) {
         (function (card, idx) {
           card.addEventListener('click', function () {
+            // Re-set images on every click in case they weren't picked up
+            if (typeof window.setLbImages === 'function') window.setLbImages(images);
             if (typeof window.setLbIndex === 'function') window.setLbIndex(idx);
             if (typeof window.showLbImage === 'function') window.showLbImage(idx);
           });
           card.addEventListener('keydown', function (e) {
             if (e.key === 'Enter' || e.key === ' ') {
               e.preventDefault();
+              if (typeof window.setLbImages === 'function') window.setLbImages(images);
               if (typeof window.setLbIndex === 'function') window.setLbIndex(idx);
               if (typeof window.showLbImage === 'function') window.showLbImage(idx);
             }

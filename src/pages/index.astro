@@ -44,7 +44,7 @@ const totalCount = allExercises.length;
       <div class="category-grid">
         {categories.map(cat => (
           <a href={`/kategorie/${cat.slug}/`} class="category-card">
-            <span class="category-number">{cat.number}</span>
+            <span class="category-number" aria-hidden="true">{cat.number}</span>
             <div class="category-card-content">
               <h3>{cat.name}</h3>
               <span class="category-count">

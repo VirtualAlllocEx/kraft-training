@@ -5,8 +5,8 @@
   --bg-light: #1a1a1a;
   --bg-card: #1e1e1e;
   --text: #FFFFFF;
-  --text-muted: #999999;
-  --text-dim: #888888;
+  --text-muted: #aaaaaa;
+  --text-dim: #999999;
   --border: #333333;
   --input-bg: #303030;
   --max-w-xl: 1700px;
@@ -58,10 +58,10 @@ body {
 }
 
 /* --- Containers --- */
-.container-xl { max-width: var(--max-w-xl); margin: 0 auto; padding: 0 50px; }
-.container-lg { max-width: var(--max-w-lg); margin: 0 auto; padding: 0 50px; }
-.container-md { max-width: var(--max-w-md); margin: 0 auto; padding: 0 50px; }
-.container-sm { max-width: var(--max-w-sm); margin: 0 auto; padding: 0 20px; }
+.container-xl { max-width: var(--max-w-xl); margin: 0 auto; padding: 0 clamp(16px, 4vw, 50px); }
+.container-lg { max-width: var(--max-w-lg); margin: 0 auto; padding: 0 clamp(16px, 4vw, 50px); }
+.container-md { max-width: var(--max-w-md); margin: 0 auto; padding: 0 clamp(16px, 4vw, 50px); }
+.container-sm { max-width: var(--max-w-sm); margin: 0 auto; padding: 0 clamp(16px, 4vw, 20px); }
 
 /* --- Typography --- */
 h1, h2, h3, h4, h5, h6 {
@@ -256,7 +256,7 @@ a:hover {
 .nav-overlay {
   position: fixed;
   inset: 0;
-  z-index: 90;
+  z-index: 105;
   background-color: var(--bg);
   display: flex;
   align-items: center;
@@ -558,7 +558,10 @@ a:hover {
   font-weight: 700;
   font-size: 14px;
   border-bottom: 1px solid var(--accent);
-  padding-bottom: 2px;
+  padding: 12px 0;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
   transition: all 0.2s ease;
   letter-spacing: 0.5px;
 }
@@ -616,7 +619,7 @@ a:hover {
 .lightbox {
   position: fixed;
   inset: 0;
-  z-index: 1000;
+  z-index: 10000;
   background-color: rgba(0, 0, 0, 0.92);
   display: flex;
   align-items: center;
@@ -787,15 +790,10 @@ html {
 }
 
 /* --- Image loading state --- */
-.exercise-card img {
+.exercise-card img:not(.loaded) {
   background-image: linear-gradient(135deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite linear;
-}
-
-.exercise-card img.loaded {
-  animation: none;
-  background-image: none;
 }
 
 @keyframes shimmer {

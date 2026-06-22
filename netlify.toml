@@ -39,6 +39,18 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
+# HTML pages: short cache + stale-while-revalidate
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=3600, stale-while-revalidate=86400"
+
+# Manifest
+[[headers]]
+  for = "/manifest.json"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+
 # Security headers
 [[headers]]
   for = "/*"

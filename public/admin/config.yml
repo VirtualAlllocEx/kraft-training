@@ -14,7 +14,7 @@ collections:
     folder: 'src/data/uebungen'
     create: true
     delete: true
-    slug: '{{category}}-{{slug}}'
+    slug: '{{category}}-{{title}}'
     extension: 'md'
     format: 'frontmatter'
     fields:
