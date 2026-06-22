@@ -1,5 +1,5 @@
 ---
-title: "Pass im Dreick 4"
+title: "Pass im Dreieck 4"
 category: "aufwaermen"
 image: "/images/uebungen/aufwaermen/Pass im Dreick 4.png"
 order: 28

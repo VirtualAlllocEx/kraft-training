@@ -1,0 +1,55 @@
+---
+import Base from '../layouts/Base.astro';
+---
+
+<Base title="Seite nicht gefunden" description="Die angeforderte Seite existiert nicht.">
+  <section class="error-page">
+    <h1>404</h1>
+    <p>Diese Seite existiert nicht.</p>
+    <a href="/" class="back-link">← Zurück zur Startseite</a>
+  </section>
+
+  <style>
+    .error-page {
+      min-height: 60vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 80px 20px;
+    }
+
+    .error-page h1 {
+      font-family: 'Inter', sans-serif;
+      font-weight: 900;
+      font-size: clamp(80px, 20vw, 200px);
+      line-height: 1;
+      color: var(--accent);
+      margin: 0 0 20px;
+    }
+
+    .error-page p {
+      font-size: 18px;
+      color: var(--text-muted);
+      margin: 0 0 40px;
+    }
+
+    .error-page .back-link {
+      display: inline-block;
+      color: var(--accent);
+      font-weight: 700;
+      text-decoration: none;
+      font-size: 16px;
+      padding: 12px 24px;
+      border: 1px solid var(--accent);
+      border-radius: 4px;
+      transition: background 0.3s ease, color 0.3s ease;
+    }
+
+    .error-page .back-link:hover {
+      background: var(--accent);
+      color: var(--bg);
+    }
+  </style>
+</Base>

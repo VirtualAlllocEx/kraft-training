@@ -4,19 +4,21 @@ backend:
   name: git-gateway
   branch: master
 
-media_folder: 'public/images/uebungen'
-public_folder: '/images/uebungen'
-
 collections:
-  - name: 'uebungen'
-    label: 'Übungen'
-    label_singular: 'Übung'
+  - name: 'aufwaermen'
+    label: 'Aufwärmen'
+    label_singular: 'Aufwärm-Übung'
     folder: 'src/data/uebungen'
     create: true
     delete: true
-    slug: '{{category}}-{{title}}'
+    slug: 'aufwaermen-{{title}}'
     extension: 'md'
     format: 'frontmatter'
+    media_folder: 'public/images/uebungen/aufwaermen'
+    public_folder: '/images/uebungen/aufwaermen'
+    filter:
+      field: category
+      value: aufwaermen
     fields:
       - label: 'Name der Übung'
         name: 'title'
@@ -24,15 +26,178 @@ collections:
         required: true
       - label: 'Kategorie'
         name: 'category'
-        widget: 'select'
+        widget: 'hidden'
+        default: 'aufwaermen'
+      - label: 'Übungsbild'
+        name: 'image'
+        widget: 'image'
         required: true
-        options:
-          - { label: 'Aufwärmen', value: 'aufwaermen' }
-          - { label: 'Passspiel', value: 'passspiel' }
-          - { label: 'Torabschluss', value: 'torabschluss' }
-          - { label: 'Spielform', value: 'spielform' }
-          - { label: 'Halle', value: 'halle' }
-          - { label: 'Kondition', value: 'kondition' }
+      - label: 'Reihenfolge'
+        name: 'order'
+        widget: 'number'
+        default: 0
+        required: false
+        value_type: 'int'
+
+  - name: 'passspiel'
+    label: 'Passspiel'
+    label_singular: 'Passspiel-Übung'
+    folder: 'src/data/uebungen'
+    create: true
+    delete: true
+    slug: 'passspiel-{{title}}'
+    extension: 'md'
+    format: 'frontmatter'
+    media_folder: 'public/images/uebungen/passspiel'
+    public_folder: '/images/uebungen/passspiel'
+    filter:
+      field: category
+      value: passspiel
+    fields:
+      - label: 'Name der Übung'
+        name: 'title'
+        widget: 'string'
+        required: true
+      - label: 'Kategorie'
+        name: 'category'
+        widget: 'hidden'
+        default: 'passspiel'
+      - label: 'Übungsbild'
+        name: 'image'
+        widget: 'image'
+        required: true
+      - label: 'Reihenfolge'
+        name: 'order'
+        widget: 'number'
+        default: 0
+        required: false
+        value_type: 'int'
+
+  - name: 'torabschluss'
+    label: 'Torabschluss'
+    label_singular: 'Torabschluss-Übung'
+    folder: 'src/data/uebungen'
+    create: true
+    delete: true
+    slug: 'torabschluss-{{title}}'
+    extension: 'md'
+    format: 'frontmatter'
+    media_folder: 'public/images/uebungen/torabschluss'
+    public_folder: '/images/uebungen/torabschluss'
+    filter:
+      field: category
+      value: torabschluss
+    fields:
+      - label: 'Name der Übung'
+        name: 'title'
+        widget: 'string'
+        required: true
+      - label: 'Kategorie'
+        name: 'category'
+        widget: 'hidden'
+        default: 'torabschluss'
+      - label: 'Übungsbild'
+        name: 'image'
+        widget: 'image'
+        required: true
+      - label: 'Reihenfolge'
+        name: 'order'
+        widget: 'number'
+        default: 0
+        required: false
+        value_type: 'int'
+
+  - name: 'spielform'
+    label: 'Spielform'
+    label_singular: 'Spielform-Übung'
+    folder: 'src/data/uebungen'
+    create: true
+    delete: true
+    slug: 'spielform-{{title}}'
+    extension: 'md'
+    format: 'frontmatter'
+    media_folder: 'public/images/uebungen/spielform'
+    public_folder: '/images/uebungen/spielform'
+    filter:
+      field: category
+      value: spielform
+    fields:
+      - label: 'Name der Übung'
+        name: 'title'
+        widget: 'string'
+        required: true
+      - label: 'Kategorie'
+        name: 'category'
+        widget: 'hidden'
+        default: 'spielform'
+      - label: 'Übungsbild'
+        name: 'image'
+        widget: 'image'
+        required: true
+      - label: 'Reihenfolge'
+        name: 'order'
+        widget: 'number'
+        default: 0
+        required: false
+        value_type: 'int'
+
+  - name: 'halle'
+    label: 'Halle'
+    label_singular: 'Hallen-Übung'
+    folder: 'src/data/uebungen'
+    create: true
+    delete: true
+    slug: 'halle-{{title}}'
+    extension: 'md'
+    format: 'frontmatter'
+    media_folder: 'public/images/uebungen/halle'
+    public_folder: '/images/uebungen/halle'
+    filter:
+      field: category
+      value: halle
+    fields:
+      - label: 'Name der Übung'
+        name: 'title'
+        widget: 'string'
+        required: true
+      - label: 'Kategorie'
+        name: 'category'
+        widget: 'hidden'
+        default: 'halle'
+      - label: 'Übungsbild'
+        name: 'image'
+        widget: 'image'
+        required: true
+      - label: 'Reihenfolge'
+        name: 'order'
+        widget: 'number'
+        default: 0
+        required: false
+        value_type: 'int'
+
+  - name: 'kondition'
+    label: 'Kondition'
+    label_singular: 'Konditions-Übung'
+    folder: 'src/data/uebungen'
+    create: true
+    delete: true
+    slug: 'kondition-{{title}}'
+    extension: 'md'
+    format: 'frontmatter'
+    media_folder: 'public/images/uebungen/kondition'
+    public_folder: '/images/uebungen/kondition'
+    filter:
+      field: category
+      value: kondition
+    fields:
+      - label: 'Name der Übung'
+        name: 'title'
+        widget: 'string'
+        required: true
+      - label: 'Kategorie'
+        name: 'category'
+        widget: 'hidden'
+        default: 'kondition'
       - label: 'Übungsbild'
         name: 'image'
         widget: 'image'

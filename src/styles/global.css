@@ -178,14 +178,14 @@ a:hover {
   left: 0;
   right: 0;
   z-index: 100;
-  padding: 20px 0;
+  padding: calc(20px + env(safe-area-inset-top, 0px)) 0 20px;
   transition: background-color 0.3s ease, padding 0.3s ease, box-shadow 0.3s ease;
 }
 
 .site-header.scrolled {
   background-color: var(--bg);
   box-shadow: 0 -2px 16px -4px rgba(0, 0, 0, 0.36);
-  padding: 10px 0;
+  padding: calc(10px + env(safe-area-inset-top, 0px)) 0 10px;
 }
 
 .header-inner {
@@ -269,7 +269,7 @@ a:hover {
 
 .nav-overlay.open {
   opacity: 1;
-  pointer-events: all;
+  pointer-events: auto;
   transform: translateY(0);
 }
 
@@ -320,7 +320,7 @@ a:hover {
 
 .nav-bottom {
   position: absolute;
-  bottom: 40px;
+  bottom: calc(40px + env(safe-area-inset-bottom, 0px));
   left: 0;
   right: 0;
   text-align: center;
@@ -429,6 +429,7 @@ a:hover {
   color: rgba(255, 255, 255, 0.02);
   white-space: nowrap;
   pointer-events: none;
+  -webkit-user-select: none;
   user-select: none;
   top: 50%;
   left: 50%;
@@ -452,82 +453,6 @@ a:hover {
 .section-heading p {
   color: var(--text-muted);
   font-size: 16px;
-}
-
-.category-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-}
-
-.category-card {
-  position: relative;
-  background-color: var(--bg-card);
-  border: 1px solid var(--border);
-  padding: 50px 30px;
-  text-decoration: none;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  min-height: 200px;
-  overflow: hidden;
-  transition: border-color 0.4s ease, transform 0.4s ease, box-shadow 0.4s ease;
-}
-
-.category-card::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  width: 100%;
-  height: 3px;
-  background-color: var(--accent);
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: transform 0.4s ease;
-}
-
-.category-card:hover {
-  border-color: var(--accent);
-  transform: translateY(-4px);
-  box-shadow: 0 10px 40px rgba(212, 254, 0, 0.05);
-}
-
-.category-card:hover::before {
-  transform: scaleX(1);
-}
-
-.category-bg-text {
-  position: absolute;
-  top: 15px;
-  right: 20px;
-  font-family: 'Inter', sans-serif;
-  font-weight: 900;
-  font-size: 80px;
-  line-height: 1;
-  color: rgba(255, 255, 255, 0.03);
-  pointer-events: none;
-  user-select: none;
-}
-
-.category-card h3 {
-  font-size: clamp(24px, 3vw, 36px);
-  font-weight: 900;
-  color: var(--text);
-  margin-bottom: 8px;
-  transition: color 0.3s ease;
-  letter-spacing: 1px;
-}
-
-.category-card:hover h3 {
-  color: var(--accent);
-}
-
-.category-count {
-  font-size: 14px;
-  color: var(--text-muted);
-  font-weight: 300;
-  letter-spacing: 0.5px;
 }
 
 /* --- Exercise Grid --- */
@@ -597,7 +522,7 @@ a:hover {
   width: 100%;
   aspect-ratio: 4/3;
   object-fit: contain;
-  background-color: #FFFFFF;
+  background-color: var(--bg-card);
   padding: 8px;
 }
 
@@ -629,11 +554,13 @@ a:hover {
   transition: opacity 0.3s ease;
   cursor: pointer;
   padding: 40px;
+  padding-top: max(40px, env(safe-area-inset-top, 0px));
+  padding-bottom: max(40px, env(safe-area-inset-bottom, 0px));
 }
 
 .lightbox.open {
   opacity: 1;
-  pointer-events: all;
+  pointer-events: auto;
 }
 
 .lightbox img {
@@ -647,8 +574,8 @@ a:hover {
 
 .lightbox-close {
   position: absolute;
-  top: 20px;
-  right: 30px;
+  top: calc(20px + env(safe-area-inset-top, 0px));
+  right: calc(30px + env(safe-area-inset-right, 0px));
   font-size: 30px;
   color: var(--text);
   cursor: pointer;
@@ -671,7 +598,7 @@ a:hover {
 
 .lightbox-title {
   position: absolute;
-  bottom: 30px;
+  bottom: calc(30px + env(safe-area-inset-bottom, 0px));
   left: 0;
   right: 0;
   text-align: center;
@@ -683,7 +610,7 @@ a:hover {
 /* --- Footer --- */
 .site-footer {
   background-color: var(--bg);
-  padding: 40px 0;
+  padding: 40px 0 calc(40px + env(safe-area-inset-bottom, 0px));
   border-top: 1px solid var(--border);
 }
 
@@ -709,6 +636,10 @@ a:hover {
   color: var(--accent);
 }
 
+.footer-logo:hover {
+  color: var(--accent);
+}
+
 .footer-text {
   font-size: 12px;
   color: var(--text-dim);
@@ -728,6 +659,10 @@ a:hover {
   color: var(--text-dim);
   letter-spacing: 0.5px;
   transition: color 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 10px 12px;
 }
 
 .footer-links a:hover {
@@ -823,8 +758,8 @@ html {
   -webkit-tap-highlight-color: transparent;
 }
 
-.lightbox-prev { left: 10px; }
-.lightbox-next { right: 10px; }
+.lightbox-prev { left: calc(10px + env(safe-area-inset-left, 0px)); }
+.lightbox-next { right: calc(10px + env(safe-area-inset-right, 0px)); }
 
 .lightbox-prev:hover,
 .lightbox-next:hover {
@@ -836,8 +771,8 @@ html {
 /* --- Scroll to top button --- */
 .scroll-top {
   position: fixed;
-  bottom: 30px;
-  right: 30px;
+  bottom: calc(30px + env(safe-area-inset-bottom, 0px));
+  right: calc(30px + env(safe-area-inset-right, 0px));
   width: 48px;
   height: 48px;
   background: var(--bg-card);
@@ -850,13 +785,15 @@ html {
   justify-content: center;
   z-index: 50;
   opacity: 0;
+  visibility: hidden;
   pointer-events: none;
-  transition: all 0.3s ease;
+  transition: opacity 0.3s ease, visibility 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
 
 .scroll-top.visible {
   opacity: 1;
-  pointer-events: all;
+  visibility: visible;
+  pointer-events: auto;
 }
 
 .scroll-top:hover {
@@ -1007,6 +944,8 @@ html {
 
   .lightbox {
     padding: 10px;
+    padding-top: max(10px, env(safe-area-inset-top, 0px));
+    padding-bottom: max(10px, env(safe-area-inset-bottom, 0px));
   }
 
   .lightbox img {
@@ -1015,8 +954,8 @@ html {
   }
 
   .lightbox-close {
-    top: 8px;
-    right: 8px;
+    top: calc(8px + env(safe-area-inset-top, 0px));
+    right: calc(8px + env(safe-area-inset-right, 0px));
     width: 44px;
     height: 44px;
   }
@@ -1028,17 +967,17 @@ html {
     font-size: 22px;
   }
 
-  .lightbox-prev { left: 4px; }
-  .lightbox-next { right: 4px; }
+  .lightbox-prev { left: calc(4px + env(safe-area-inset-left, 0px)); }
+  .lightbox-next { right: calc(4px + env(safe-area-inset-right, 0px)); }
 
   .lightbox-title {
-    bottom: 15px;
+    bottom: calc(15px + env(safe-area-inset-bottom, 0px));
     font-size: 13px;
   }
 
   .scroll-top {
-    bottom: 16px;
-    right: 16px;
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    right: calc(16px + env(safe-area-inset-right, 0px));
     width: 44px;
     height: 44px;
   }
@@ -1074,17 +1013,30 @@ html {
   }
 
   .exercise-card img {
-    aspect-ratio: 1/1;
+    aspect-ratio: 4/3;
     padding: 4px;
   }
 
   .exercise-card .exercise-name {
-    padding: 8px;
-    font-size: 11px;
+    padding: 10px;
+    font-size: 12px;
+    word-break: break-word;
+    hyphens: auto;
   }
 
   .back-link {
     font-size: 13px;
     padding: 8px 0;
+  }
+}
+
+@media (max-width: 360px) {
+  .exercise-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .exercise-card img {
+    aspect-ratio: 4/3;
   }
 }

@@ -34,10 +34,31 @@ const currentPath = Astro.url.pathname;
   <link rel="manifest" href="/manifest.json" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta property="og:title" content={`${title} | KRAFT.TRAINING`} />
+  <meta property="og:description" content={description} />
+  <meta property="og:type" content="website" />
+  <meta property="og:locale" content="de_AT" />
+  <meta property="og:site_name" content="KRAFT.TRAINING" />
+  <meta name="twitter:card" content="summary" />
   <title>{title} | KRAFT.TRAINING</title>
-  <script is:inline src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+  <script is:inline>{
+    (function(){
+      var h = window.location.hash;
+      if (h && (h.indexOf('invite_token') !== -1 || h.indexOf('recovery_token') !== -1 || h.indexOf('confirmation_token') !== -1)) {
+        var s = document.createElement('script');
+        s.src = 'https://identity.netlify.com/v1/netlify-identity-widget.js';
+        document.head.appendChild(s);
+      }
+    })();
+  }</script>
 </head>
 <body>
+
+  <noscript>
+    <div style="background:#D4FE00;color:#131313;text-align:center;padding:12px;font-weight:700;font-family:Inter,sans-serif;">
+      JavaScript wird benötigt, um diese Seite zu verwenden.
+    </div>
+  </noscript>
 
   <a href="#main-content" class="skip-link">Zum Inhalt springen</a>
   <span id="circle"></span>
@@ -107,9 +128,22 @@ const currentPath = Astro.url.pathname;
 
   <script is:inline>
     (function () {
-      // --- Burger menu toggle ---
       var burger = document.getElementById('burgerBtn');
       var nav = document.getElementById('navOverlay');
+      var mainContent = document.getElementById('main-content');
+      var siteHeader = document.getElementById('siteHeader');
+      var scrollTopBtn = document.getElementById('scrollTop');
+      var footer = document.querySelector('.site-footer');
+
+      function closeMenu() {
+        burger.classList.remove('open');
+        nav.classList.remove('open');
+        document.body.style.overflow = '';
+        burger.setAttribute('aria-label', 'Menü öffnen');
+        burger.setAttribute('aria-expanded', 'false');
+        nav.setAttribute('aria-hidden', 'true');
+        nav.setAttribute('inert', '');
+      }
 
       burger.addEventListener('click', function () {
         var isOpen = burger.classList.toggle('open');
@@ -128,22 +162,11 @@ const currentPath = Astro.url.pathname;
         }
       });
 
-      var navLinks = document.querySelectorAll('.nav-links a');
+      var navLinks = document.querySelectorAll('.nav-links a, .nav-bottom a');
       for (var i = 0; i < navLinks.length; i++) {
-        navLinks[i].addEventListener('click', function () {
-          burger.classList.remove('open');
-          nav.classList.remove('open');
-          document.body.style.overflow = '';
-          burger.setAttribute('aria-label', 'Menü öffnen');
-          burger.setAttribute('aria-expanded', 'false');
-          nav.setAttribute('aria-hidden', 'true');
-          nav.setAttribute('inert', '');
-        });
+        navLinks[i].addEventListener('click', closeMenu);
       }
 
-      // --- Scroll: header + scroll-to-top ---
-      var header = document.getElementById('siteHeader');
-      var scrollTopBtn = document.getElementById('scrollTop');
       var scrollTicking = false;
 
       window.addEventListener('scroll', function () {
@@ -151,9 +174,9 @@ const currentPath = Astro.url.pathname;
           requestAnimationFrame(function () {
             var y = window.scrollY;
             if (y > 80) {
-              header.classList.add('scrolled');
+              siteHeader.classList.add('scrolled');
             } else {
-              header.classList.remove('scrolled');
+              siteHeader.classList.remove('scrolled');
             }
             if (y > 400) {
               scrollTopBtn.classList.add('visible');
@@ -212,6 +235,20 @@ const currentPath = Astro.url.pathname;
       var lbIndex = -1;
       var lastFocusedEl = null;
 
+      function setBackgroundInert(inert) {
+        var els = [mainContent, siteHeader, scrollTopBtn, footer];
+        for (var i = 0; i < els.length; i++) {
+          if (!els[i]) continue;
+          if (inert) {
+            els[i].setAttribute('inert', '');
+            els[i].setAttribute('aria-hidden', 'true');
+          } else {
+            els[i].removeAttribute('inert');
+            els[i].removeAttribute('aria-hidden');
+          }
+        }
+      }
+
       function openLightbox(src, title) {
         lastFocusedEl = document.activeElement;
         lightboxImg.src = src;
@@ -220,6 +257,7 @@ const currentPath = Astro.url.pathname;
         lightbox.classList.add('open');
         lightbox.setAttribute('aria-hidden', 'false');
         document.body.style.overflow = 'hidden';
+        setBackgroundInert(true);
         updateLbArrows();
         lightboxClose.focus();
       }
@@ -228,6 +266,7 @@ const currentPath = Astro.url.pathname;
         lightbox.classList.remove('open');
         lightbox.setAttribute('aria-hidden', 'true');
         document.body.style.overflow = '';
+        setBackgroundInert(false);
         if (lastFocusedEl && typeof lastFocusedEl.focus === 'function') {
           lastFocusedEl.focus();
         }
@@ -247,9 +286,12 @@ const currentPath = Astro.url.pathname;
         lightboxImg.src = lbImages[idx].src;
         lightboxImg.alt = lbImages[idx].title;
         lightboxTitle.textContent = (idx + 1) + ' von ' + lbImages.length + ' – ' + lbImages[idx].title;
-        lightbox.classList.add('open');
-        lightbox.setAttribute('aria-hidden', 'false');
-        document.body.style.overflow = 'hidden';
+        if (!lightbox.classList.contains('open')) {
+          lightbox.classList.add('open');
+          lightbox.setAttribute('aria-hidden', 'false');
+          document.body.style.overflow = 'hidden';
+          setBackgroundInert(true);
+        }
         updateLbArrows();
         lightboxClose.focus();
       }
@@ -287,8 +329,11 @@ const currentPath = Astro.url.pathname;
       lightbox.addEventListener('keydown', function (e) {
         if (!lightbox.classList.contains('open')) return;
         if (e.key !== 'Tab') return;
-        var focusable = lightbox.querySelectorAll('button:not([style*="display: none"]):not([style*="display:none"])');
-        var focusableArr = Array.prototype.slice.call(focusable);
+        var allBtns = lightbox.querySelectorAll('button');
+        var focusableArr = [];
+        for (var b = 0; b < allBtns.length; b++) {
+          if (allBtns[b].offsetParent !== null) focusableArr.push(allBtns[b]);
+        }
         if (focusableArr.length === 0) return;
         var first = focusableArr[0];
         var last = focusableArr[focusableArr.length - 1];
@@ -318,6 +363,20 @@ const currentPath = Astro.url.pathname;
         }
       }, { passive: true });
 
+      lightbox.addEventListener('touchmove', function (e) {
+        if (touchId !== null && lightbox.classList.contains('open')) {
+          var touch = null;
+          for (var t = 0; t < e.touches.length; t++) {
+            if (e.touches[t].identifier === touchId) { touch = e.touches[t]; break; }
+          }
+          if (touch) {
+            var dx = Math.abs(touch.screenX - touchStartX);
+            var dy = Math.abs(touch.screenY - touchStartY);
+            if (dx > dy) e.preventDefault();
+          }
+        }
+      }, { passive: false });
+
       lightbox.addEventListener('touchend', function (e) {
         var touch = null;
         for (var t = 0; t < e.changedTouches.length; t++) {
@@ -345,13 +404,7 @@ const currentPath = Astro.url.pathname;
           if (e.key === 'ArrowRight' && lbIndex < lbImages.length - 1) { showLbImage(lbIndex + 1); return; }
           if (e.key === 'ArrowLeft' && lbIndex > 0) { showLbImage(lbIndex - 1); return; }
         } else if (e.key === 'Escape' && nav.classList.contains('open')) {
-          burger.classList.remove('open');
-          nav.classList.remove('open');
-          document.body.style.overflow = '';
-          burger.setAttribute('aria-label', 'Menü öffnen');
-          burger.setAttribute('aria-expanded', 'false');
-          nav.setAttribute('aria-hidden', 'true');
-          nav.setAttribute('inert', '');
+          closeMenu();
           burger.focus();
         }
       });
@@ -371,16 +424,19 @@ const currentPath = Astro.url.pathname;
         delete window._pendingLbImages;
       }
 
-      // Netlify Identity redirect for admin login
-      if (window.netlifyIdentity) {
-        window.netlifyIdentity.on('init', function (user) {
-          if (!user) {
-            window.netlifyIdentity.on('login', function () {
-              document.location.href = '/admin/';
-            });
-          }
-        });
+      function initNetlifyIdentity() {
+        if (window.netlifyIdentity) {
+          window.netlifyIdentity.on('init', function (user) {
+            if (!user) {
+              window.netlifyIdentity.on('login', function () {
+                document.location.href = '/admin/';
+              });
+            }
+          });
+        }
       }
+      initNetlifyIdentity();
+      window.addEventListener('netlifyIdentityReady', initNetlifyIdentity);
     })();
   </script>
 
