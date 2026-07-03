@@ -3,6 +3,9 @@ node_modules/
 dist/
 .astro/
 
+# Claude Code (agent worktrees, scratchpad)
+.claude/
+
 # Environment
 .env
 .env.*
