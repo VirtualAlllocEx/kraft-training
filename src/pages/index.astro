@@ -60,6 +60,7 @@ const allSearchableJson = JSON.stringify(allSearchable).replace(/</g, '\\u003c')
           spellcheck="false"
         />
       </div>
+      <p class="home-search-status" id="homeSearchStatus" role="status"></p>
       <div id="homeSearchResults" class="home-search-results" hidden></div>
     </div>
   </section>
@@ -70,6 +71,7 @@ const allSearchableJson = JSON.stringify(allSearchable).replace(/</g, '\\u003c')
     (function () {
       var input = document.getElementById('homeSearchInput');
       var results = document.getElementById('homeSearchResults');
+      var statusEl = document.getElementById('homeSearchStatus');
       var dataEl = document.getElementById('allExercisesData');
       if (!input || !results || !dataEl) return;
 
@@ -97,14 +99,6 @@ const allSearchableJson = JSON.stringify(allSearchable).replace(/</g, '\\u003c')
       function render(matches) {
         results.innerHTML = '';
 
-        if (matches.length === 0) {
-          var empty = document.createElement('p');
-          empty.className = 'home-search-noresults';
-          empty.textContent = 'Keine Treffer';
-          results.appendChild(empty);
-          return;
-        }
-
         for (var i = 0; i < matches.length; i++) {
           var ex = matches[i];
           var link = document.createElement('a');
@@ -118,6 +112,10 @@ const allSearchableJson = JSON.stringify(allSearchable).replace(/</g, '\\u003c')
           img.decoding = 'async';
           img.width = 60;
           img.height = 45;
+          // Broken thumbnail: hide the broken-image icon, keep the layout
+          img.addEventListener('error', function () {
+            this.style.visibility = 'hidden';
+          });
           link.appendChild(img);
 
           var title = document.createElement('span');
@@ -140,6 +138,7 @@ const allSearchableJson = JSON.stringify(allSearchable).replace(/</g, '\\u003c')
         if (query === '') {
           results.hidden = true;
           results.innerHTML = '';
+          if (statusEl) statusEl.textContent = '';
           return;
         }
 
@@ -150,8 +149,16 @@ const allSearchableJson = JSON.stringify(allSearchable).replace(/</g, '\\u003c')
           }
         }
 
+        // role="status" region: announces the result count to screen
+        // readers and doubles as the visible "Keine Treffer" empty state
+        if (statusEl) {
+          statusEl.textContent = matches.length === 0
+            ? 'Keine Treffer'
+            : matches.length + ' Treffer';
+        }
+
         render(matches);
-        results.hidden = false;
+        results.hidden = matches.length === 0;
       });
     })();
   </script>
@@ -324,9 +331,18 @@ const allSearchableJson = JSON.stringify(allSearchable).replace(/</g, '\\u003c')
     border-color: var(--accent);
   }
 
+  .home-search-status {
+    max-width: 700px;
+    margin: 12px auto 0;
+    color: var(--text-muted);
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    min-height: 20px; /* reserve the line so results don't jump */
+  }
+
   .home-search-results {
     max-width: 700px;
-    margin: 20px auto 0;
+    margin: 8px auto 0;
   }
 
   .home-search-results:not([hidden]) {
@@ -370,12 +386,6 @@ const allSearchableJson = JSON.stringify(allSearchable).replace(/</g, '\\u003c')
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 1px;
-  }
-
-  .home-search-results :global(.home-search-noresults) {
-    color: var(--text-muted);
-    text-align: center;
-    padding: 10px 0;
   }
 
   /* --- Category cards overrides --- */

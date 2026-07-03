@@ -35,7 +35,7 @@ const currentPath = Astro.url.pathname;
   <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;900&display=swap" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;900&display=swap" rel="stylesheet" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <link rel="apple-touch-icon" href="/favicon.svg" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
   <link rel="manifest" href="/manifest.json" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="KRAFT.TRAINING" />
@@ -149,7 +149,7 @@ const currentPath = Astro.url.pathname;
         <li>
           <a
             href={`/kategorie/${cat.slug}/`}
-            class={currentPath.includes(cat.slug) ? 'active' : ''}
+            class={currentPath.startsWith(`/kategorie/${cat.slug}`) ? 'active' : ''}
           >
             {cat.name.toUpperCase()}
           </a>
@@ -159,7 +159,7 @@ const currentPath = Astro.url.pathname;
         <a href="/plan/" class={currentPath.startsWith('/plan') ? 'active' : ''}>TRAININGSPLAN</a>
       </li>
       <li>
-        <a href="/hilfe/" class={currentPath.includes('hilfe') ? 'active' : ''}>HILFE</a>
+        <a href="/hilfe/" class={currentPath.startsWith('/hilfe') ? 'active' : ''}>HILFE</a>
       </li>
     </ul>
     <div class="nav-bottom">
@@ -195,10 +195,11 @@ const currentPath = Astro.url.pathname;
     <button class="lightbox-prev" id="lightboxPrev" aria-label="Vorheriges Bild">&#8249;</button>
     <div class="lightbox-stage">
       <img id="lightboxImg" src="" alt="" />
-      <div class="lightbox-meta" id="lightboxMeta" hidden>
-        <div class="lightbox-tags" id="lightboxTags"></div>
-        <p class="lightbox-description" id="lightboxDescription"></p>
-        <div class="lightbox-actions">
+      <div class="lightbox-meta" id="lightboxMeta">
+        <div class="lightbox-title" id="lightboxTitle" aria-live="polite" role="status"></div>
+        <div class="lightbox-tags" id="lightboxTags" hidden></div>
+        <p class="lightbox-description" id="lightboxDescription" hidden></p>
+        <div class="lightbox-actions" id="lightboxActions" hidden>
           <a class="lightbox-video" id="lightboxVideo" href="#" target="_blank" rel="noopener noreferrer" hidden>▶ Video ansehen</a>
           <button type="button" class="lightbox-plan-btn" id="lightboxPlanBtn" hidden>+ Zum Plan</button>
           <a class="lightbox-details" id="lightboxDetails" href="#" hidden>Details ansehen</a>
@@ -206,7 +207,6 @@ const currentPath = Astro.url.pathname;
       </div>
     </div>
     <button class="lightbox-next" id="lightboxNext" aria-label="Nächstes Bild">&#8250;</button>
-    <div class="lightbox-title" id="lightboxTitle" aria-live="polite" role="status"></div>
   </div>
 
   <script is:inline>
@@ -316,6 +316,7 @@ const currentPath = Astro.url.pathname;
       var lightboxPrev = document.getElementById('lightboxPrev');
       var lightboxNext = document.getElementById('lightboxNext');
       var lightboxMeta = document.getElementById('lightboxMeta');
+      var lightboxActions = document.getElementById('lightboxActions');
       var lightboxTags = document.getElementById('lightboxTags');
       var lightboxDescription = document.getElementById('lightboxDescription');
       var lightboxVideo = document.getElementById('lightboxVideo');
@@ -398,10 +399,10 @@ const currentPath = Astro.url.pathname;
         var hasDuration = !!(entry && entry.duration);
         var hasPlayers = !!(entry && entry.players);
         var hasId = !!(entry && entry.id);
-        var anything = hasDesc || hasVideo || hasDuration || hasPlayers || hasId;
 
         if (lightboxTags) {
           lightboxTags.innerHTML = '';
+          lightboxTags.hidden = !(hasDuration || hasPlayers);
           if (hasDuration) {
             var t1 = document.createElement('span');
             t1.className = 'lightbox-tag';
@@ -438,7 +439,15 @@ const currentPath = Astro.url.pathname;
           }
         }
         updateLightboxPlanBtn(entry);
-        lightboxMeta.hidden = !anything;
+        // Meta panel is always visible (the title lives inside it); only the
+        // actions row collapses when none of its buttons are shown.
+        if (lightboxActions) {
+          lightboxActions.hidden = !(
+            (lightboxVideo && !lightboxVideo.hidden) ||
+            (lightboxPlanBtn && !lightboxPlanBtn.hidden) ||
+            (lightboxDetails && !lightboxDetails.hidden)
+          );
+        }
       }
 
       var lbImages = [];
@@ -668,10 +677,24 @@ const currentPath = Astro.url.pathname;
         logoutBtn.hidden = false;
         logoutBtn.addEventListener('click', function () {
           if (!confirm('Wirklich abmelden?')) return;
+          var reloaded = false;
+          function reloadOnce() {
+            if (reloaded) return;
+            reloaded = true;
+            window.location.reload();
+          }
           if (window.netlifyIdentity && window.netlifyIdentity.logout) {
-            // Widget is loaded (identity flow) — use the proper logout
+            // Widget is loaded (identity flow) — use the proper logout and
+            // reload when it actually finishes (a fixed short timer could
+            // reload before the session was cleared on slow networks).
+            window.netlifyIdentity.on('logout', reloadOnce);
             window.netlifyIdentity.logout();
-            setTimeout(function () { window.location.reload(); }, 500);
+            // Fallback: if the logout event never fires (network error),
+            // clear the local session ourselves and reload anyway.
+            setTimeout(function () {
+              try { localStorage.removeItem('gotrue.user'); } catch (e) {}
+              reloadOnce();
+            }, 2000);
           } else {
             // No widget on the public site — just clear the stored token
             try { localStorage.removeItem('gotrue.user'); } catch (e) {}
@@ -692,9 +715,13 @@ const currentPath = Astro.url.pathname;
               if (!newWorker) return;
               newWorker.addEventListener('statechange', function () {
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  /* A new version is ready: show a toast with a reload button */
+                  /* A new version is ready: show a toast with a reload button.
+                     Guard against stacking: updatefound can fire again for a
+                     later deploy while the tab stays open. */
+                  if (document.getElementById('swUpdateToast')) return;
                   var toast = document.createElement('div');
-                  toast.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#D4FE00;color:#131313;padding:12px 20px;border-radius:0;font-weight:700;z-index:10001;box-shadow:0 4px 20px rgba(0,0,0,0.3);';
+                  toast.id = 'swUpdateToast';
+                  toast.style.cssText = 'position:fixed;bottom:20px;bottom:calc(20px + env(safe-area-inset-bottom, 0px));left:50%;transform:translateX(-50%);background:#D4FE00;color:#131313;padding:12px 20px;border-radius:0;font-weight:700;z-index:10001;box-shadow:0 4px 20px rgba(0,0,0,0.3);max-width:calc(100vw - 24px);text-align:center;';
                   toast.innerHTML = 'Neue Version verfügbar &nbsp;<button style="background:#131313;color:#D4FE00;border:none;padding:6px 12px;margin-left:8px;font-weight:700;cursor:pointer;">Aktualisieren</button>';
                   toast.querySelector('button').addEventListener('click', function () {
                     window.location.reload();

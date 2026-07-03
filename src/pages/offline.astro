@@ -2,11 +2,63 @@
 import Base from '../layouts/Base.astro';
 ---
 <Base title="Offline" description="Du bist offline">
-  <div class="container-lg" style="padding: 120px 20px 60px; text-align: center;">
+  <div class="container-lg offline-wrap">
     <h1>Offline</h1>
-    <p style="margin-top: 20px; color: var(--text-muted);">
-      Du bist gerade offline. Sobald wieder Verbindung besteht, kannst du weiterhin Übungen ansehen, die du bereits geöffnet hast.
+    <p class="offline-text">
+      Du bist gerade offline. Übungen, die du schon einmal geöffnet hast, kannst du
+      trotzdem ansehen — alles andere ist wieder verfügbar, sobald die Verbindung steht.
     </p>
-    <a href="/" class="link-bold" style="margin-top: 30px; display: inline-block;">Zur Startseite</a>
+    <div class="offline-actions">
+      <button type="button" id="offlineRetry" class="offline-retry">Erneut versuchen</button>
+      <a href="/" class="link-bold">Zur Startseite</a>
+    </div>
   </div>
+
+  <script is:inline>
+    (function () {
+      var btn = document.getElementById('offlineRetry');
+      if (btn) {
+        btn.addEventListener('click', function () {
+          window.location.reload();
+        });
+      }
+    })();
+  </script>
 </Base>
+
+<style>
+  .offline-wrap {
+    padding: 120px 20px 60px;
+    text-align: center;
+  }
+  .offline-text {
+    max-width: 520px;
+    margin: 20px auto 0;
+    color: var(--text-muted);
+  }
+  .offline-actions {
+    margin-top: 30px;
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .offline-retry {
+    padding: 12px 20px;
+    min-height: 44px;
+    background: var(--accent);
+    color: var(--bg);
+    border: 1px solid var(--accent);
+    font-family: Inter, sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+  }
+  @media (hover: hover) {
+    .offline-retry:hover {
+      opacity: 0.9;
+    }
+  }
+</style>

@@ -18,7 +18,7 @@ import Base from '../layouts/Base.astro';
 
     <h2>Einloggen</h2>
     <ol>
-      <li>Öffne im Browser: <a href="/admin/" class="link-bold">https://kraft-training.netlify.app/admin/</a></li>
+      <li>Öffne im Browser: <a href="/admin/" class="link-bold" target="_blank" rel="noopener noreferrer">https://kraft-training.netlify.app/admin/</a></li>
       <li>Klicke auf <strong>„Mit Netlify Identity einloggen“</strong>.</li>
       <li>E-Mail-Adresse und Passwort eingeben → auf <strong>„Log in“</strong> klicken (das Login-Fenster ist auf Englisch).</li>
     </ol>
@@ -48,7 +48,7 @@ import Base from '../layouts/Base.astro';
         Formular ausfüllen:
         <ul>
           <li><strong>Name der Übung</strong> — z.B. „Passspiel im Quadrat“ <em>(Pflicht)</em></li>
-          <li><strong>Übungsbild</strong> — Bild vom Computer hochladen, maximal 1 MB <em>(Pflicht — genaue Schritte siehe Abschnitt „Bilder hochladen“)</em></li>
+          <li><strong>Übungsbild</strong> — Bild vom Computer hochladen, maximal 1 MB <em>(Pflicht — genaue Schritte siehe Abschnitt <a href="#bilder-hochladen" class="hilfe-xref">„Bilder hochladen“</a>)</em></li>
           <li><strong>Reihenfolge</strong> — Zahl, kleiner = weiter vorne <em>(optional, leer lassen = Sortierung nach Name)</em></li>
           <li><strong>Beschreibung (optional)</strong> — was wird trainiert, wie läuft die Übung</li>
           <li><strong>Video-Link (optional)</strong> — YouTube- oder Vimeo-URL, muss mit <code>http://</code> oder <code>https://</code> beginnen</li>
@@ -120,11 +120,12 @@ import Base from '../layouts/Base.astro';
     <div class="hilfe-warn">
       <strong>⚠ Achtung:</strong> Gelöschte Übungen kann nur der Entwickler wiederherstellen —
       im Zweifel lieber melden statt löschen. Und: Jede Übung hat eine eigene Seite, deren
-      Link man teilen kann (siehe unten). Wenn du eine Übung löschst oder umbenennst,
+      Link man teilen kann (siehe Abschnitt <a href="#oeffentliche-website" class="hilfe-xref">„Die
+      öffentliche Website“</a>). Wenn du eine Übung löschst oder umbenennst,
       funktionieren bereits verschickte Links auf diese Übung nicht mehr.
     </div>
 
-    <h2>Bilder hochladen</h2>
+    <h2 id="bilder-hochladen">Bilder hochladen</h2>
     <p>Beim Feld <strong>„Übungsbild“</strong>:</p>
     <ol>
       <li>Auf <strong>„Wähle ein Bild“</strong> klicken — die Bildergalerie öffnet sich.</li>
@@ -161,7 +162,7 @@ import Base from '../layouts/Base.astro';
       <li>Immer noch nichts? Dann ist vermutlich der automatische Neuaufbau der Website fehlgeschlagen (ein sogenannter Build-Fehler). Das kannst du selbst nicht beheben — bitte kurz an <a href="mailto:daniel@redops.at" class="link-bold">daniel@redops.at</a> melden, am besten mit dem Namen der Übung.</li>
     </ol>
 
-    <h2>Die öffentliche Website — gut zu wissen</h2>
+    <h2 id="oeffentliche-website">Die öffentliche Website — gut zu wissen</h2>
     <ul>
       <li><strong>Übungs-Seiten zum Teilen:</strong> Jede Übung hat eine eigene Detailseite unter <code>kraft-training.netlify.app/uebung/…</code> — z.B. über „Details ansehen“ erreichbar. Den Link kannst du per WhatsApp oder E-Mail an andere Trainer schicken. Aber Achtung: Wird die Übung gelöscht oder umbenannt, führt der alte Link ins Leere.</li>
       <li><strong>Trainingsplan:</strong> Auf der Website lassen sich Übungen für ein Training auswählen. Oben rechts erscheint dann ein Merkzettel-Symbol (<strong>📋</strong>) mit der Anzahl der ausgewählten Übungen. Ein Klick darauf führt zur Seite <a href="/plan/" class="link-bold">/plan/</a>, wo man die Auswahl ansehen, drucken und teilen kann.</li>
@@ -243,12 +244,15 @@ import Base from '../layouts/Base.astro';
     margin-bottom: 16px;
     font-size: clamp(22px, 3vw, 30px);
     color: var(--text);
+    /* Anchor targets must not land underneath the fixed header */
+    scroll-margin-top: 100px;
   }
   h3 {
     margin-top: 28px;
     margin-bottom: 12px;
     font-size: clamp(18px, 2.5vw, 22px);
     color: var(--text);
+    scroll-margin-top: 100px;
   }
   p, ol, ul {
     color: var(--text);
@@ -272,6 +276,17 @@ import Base from '../layouts/Base.astro';
     background: rgba(255, 255, 255, 0.08);
     padding: 1px 6px;
     font-size: 0.9em;
+    overflow-wrap: anywhere;
+  }
+  /* The written-out admin URL is one unbreakable 40+ character token at
+     20px — without this it overflows narrow phone viewports */
+  a.link-bold {
+    overflow-wrap: anywhere;
+  }
+  .hilfe-xref {
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 3px;
   }
   .hilfe-note {
     background: rgba(212, 254, 0, 0.05);

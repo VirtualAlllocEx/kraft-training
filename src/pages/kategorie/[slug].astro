@@ -58,14 +58,23 @@ const categoryName = categoryMap[slug!] || slug;
 
     {exercises.length > 0 && (
       <div class="exercise-search">
-        <input
-          type="search"
-          id="exerciseSearch"
-          placeholder="Übung suchen…"
-          aria-label="Übung suchen"
-          autocomplete="off"
-          spellcheck="false"
-        />
+        <div class="exercise-search-field">
+          <input
+            type="search"
+            id="exerciseSearch"
+            placeholder="Übung suchen…"
+            aria-label="Übung suchen"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <button
+            type="button"
+            class="exercise-search-clear"
+            id="exerciseSearchClear"
+            aria-label="Suche löschen"
+            hidden
+          >&times;</button>
+        </div>
         <p class="exercise-no-results" id="exerciseNoResults" hidden>Keine Treffer</p>
         <p id="searchResultCount" class="search-count" role="status" aria-live="polite" aria-atomic="true"></p>
       </div>
@@ -165,6 +174,10 @@ const categoryName = categoryMap[slug!] || slug;
         var visibleIdx = -1;
         for (var v = 0; v < cards.length; v++) {
           if (cards[v].style.display === 'none') continue;
+          // Skip cards with broken images: prev/next should never land on
+          // an image we already know cannot load. (The clicked card itself
+          // can never be broken — guarded above.)
+          if (cards[v].dataset.broken === 'true') continue;
           if (cards[v] === card) visibleIdx = visibleImages.length;
           visibleImages.push(images[v]);
         }
@@ -202,6 +215,9 @@ const categoryName = categoryMap[slug!] || slug;
         if (brokenCard) {
           brokenCard.dataset.broken = 'true';
           brokenCard.setAttribute('aria-disabled', 'true');
+          // The card no longer opens anything — take it out of the tab order.
+          // The plan button inside stays tabbable and functional.
+          brokenCard.setAttribute('tabindex', '-1');
         }
         img.style.display = 'none';
         var placeholder = document.createElement('div');
@@ -241,6 +257,7 @@ const categoryName = categoryMap[slug!] || slug;
 
       var cards = grid.querySelectorAll('.exercise-card');
       var countEl = document.getElementById('searchResultCount');
+      var clearBtn = document.getElementById('exerciseSearchClear');
 
       // Fold umlauts/diacritics so "ubung" matches "Übung", "strasse" matches "Straße"
       function normalize(s) {
@@ -257,7 +274,7 @@ const categoryName = categoryMap[slug!] || slug;
         normalizedTitles[i] = normalize(cards[i].getAttribute('data-title'));
       }
 
-      input.addEventListener('input', function () {
+      function applyFilter() {
         var query = normalize(input.value.trim());
         var visible = 0;
 
@@ -273,14 +290,45 @@ const categoryName = categoryMap[slug!] || slug;
             ? visible + ' von ' + cards.length + ' Übungen'
             : '';
         }
+        // Custom clear button: WebKit's built-in one is hidden via CSS and
+        // Firefox never had one, so this works the same everywhere
+        if (clearBtn) clearBtn.hidden = input.value === '';
+      }
+
+      input.addEventListener('input', applyFilter);
+
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          // Nothing to submit — just dismiss the mobile keyboard
+          e.preventDefault();
+          input.blur();
+        } else if (e.key === 'Escape') {
+          if (input.value !== '') {
+            // Clear the filter (Chrome does this natively for type=search,
+            // Firefox does not — make it consistent)
+            e.preventDefault();
+            input.value = '';
+            applyFilter();
+          } else {
+            input.blur();
+          }
+        }
       });
 
-      // Prefill from ?suche= — used by the homepage global search links
+      if (clearBtn) {
+        clearBtn.addEventListener('click', function () {
+          input.value = '';
+          applyFilter();
+          input.focus();
+        });
+      }
+
+      // Prefill from ?suche= — deep-linkable searches into a category
       try {
         var pre = new URLSearchParams(window.location.search).get('suche');
         if (pre) {
           input.value = pre;
-          input.dispatchEvent(new Event('input'));
+          applyFilter();
         }
       } catch (e) { /* older browsers: just show the unfiltered list */ }
     })();
@@ -366,6 +414,6 @@ const categoryName = categoryMap[slug!] || slug;
       "name": ex.data.title,
       "image": new URL(ex.data.image, Astro.site).href
     }))
-  })}></script>
+  }).replace(/</g, '\\u003c')}></script>
 
 </Base>

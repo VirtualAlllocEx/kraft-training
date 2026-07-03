@@ -42,7 +42,7 @@ const groups = categoryInfo
         <button type="button" id="planSelectAll" class="plan-btn">Alle auswählen</button>
         <button type="button" id="planClear" class="plan-btn">Auswahl leeren</button>
       </div>
-      <p class="plan-count" id="planCount" aria-live="polite">0 Übungen ausgewählt</p>
+      <p class="plan-count" id="planCount" role="status" aria-live="polite" aria-atomic="true">0 Übungen ausgewählt</p>
     </div>
 
     <section class="plan-summary" id="planSummary" hidden>
@@ -58,14 +58,32 @@ const groups = categoryInfo
       </div>
     </section>
 
+    {groups.length > 0 && (
+      <div class="exercise-search">
+        <input
+          type="search"
+          id="planSearch"
+          placeholder="Übung suchen…"
+          aria-label="Übung suchen"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <p class="exercise-no-results" id="planNoResults" hidden>Keine Treffer</p>
+        <p id="planSearchCount" class="search-count" role="status" aria-live="polite" aria-atomic="true"></p>
+      </div>
+    )}
+
     {groups.length === 0 ? (
       <div class="plan-empty">
         <p>Noch keine Übungen vorhanden.</p>
         <p>Sobald Übungen angelegt sind, können sie hier für den Trainingsplan ausgewählt werden.</p>
       </div>
     ) : groups.map(group => (
-      <section class="plan-group">
-        <h2 class="plan-group-title">{group.name}</h2>
+      <details class="plan-group" open>
+        <summary class="plan-group-summary">
+          <h2 class="plan-group-title">{group.name}</h2>
+          <span class="plan-group-count">{group.exercises.length} {group.exercises.length === 1 ? 'Übung' : 'Übungen'}</span>
+        </summary>
         <div class="plan-list">
           {group.exercises.map(exercise => (
             <label class="plan-item"
@@ -80,7 +98,7 @@ const groups = categoryInfo
             </label>
           ))}
         </div>
-      </section>
+      </details>
     ))}
     <div class="spacer-md"></div>
   </div>
@@ -106,6 +124,7 @@ const groups = categoryInfo
           var raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
           if (Array.isArray(raw)) return raw;
           if (raw && Array.isArray(raw.ids)) return raw.ids;
+          if (raw && Array.isArray(raw.current)) return raw.current; // named-plans format read by the header badge
         } catch (e) {}
         return [];
       }
@@ -161,6 +180,17 @@ const groups = categoryInfo
         };
       }
 
+      // Stored ids that exist in this build — guards against stale ids written
+      // by another tab so count, summary, share URL and print stay consistent
+      function knownIds() {
+        var ids = readPlan();
+        var out = [];
+        for (var k = 0; k < ids.length; k++) {
+          if (lookup[ids[k]]) out.push(ids[k]);
+        }
+        return out;
+      }
+
       // URL-shared plan (?p=id1,id2,...) takes precedence over the stored plan,
       // but never silently: overwriting a non-empty local plan needs confirmation
       function arraysEqual(a, b) {
@@ -183,13 +213,13 @@ const groups = categoryInfo
                 'Dein aktueller Plan (' + existing.length + ' Übung' + (existing.length === 1 ? '' : 'en') +
                 ') wird ersetzt. Fortfahren?'
               );
-              if (!applyUrlPlan) {
-                // Keep the local plan and drop the shared one from the URL
-                history.replaceState({}, '', window.location.pathname);
-              }
             }
             if (applyUrlPlan) writePlan(urlIds);
           }
+          // The param is handled either way (applied or declined) — strip it,
+          // otherwise every later reload re-imports the shared plan and, once
+          // the user has edited their plan, re-triggers the overwrite confirm.
+          history.replaceState({}, '', window.location.pathname);
         }
       } catch (e) {}
 
@@ -230,19 +260,44 @@ const groups = categoryInfo
         renderSummary();
       }
 
+      // Pre-build the hidden print container shortly after each plan change so
+      // its images start loading early: Ctrl+P / menu printing has no async
+      // hook, and beforeprint cannot wait for image loads.
+      var prewarmTimer;
+      function schedulePrintPrewarm() {
+        clearTimeout(prewarmTimer);
+        prewarmTimer = setTimeout(function () { buildPrintContainer(); }, 600);
+      }
+
       function update() {
-        var n = readPlan().length;
+        var n = knownIds().length;
         countEl.textContent = n + (n === 1 ? ' Übung ausgewählt' : ' Übungen ausgewählt');
         planPrint.disabled = n === 0;
         window.dispatchEvent(new CustomEvent('plan-changed'));
+        schedulePrintPrewarm();
+      }
+
+      // True while the search filter hides this checkbox's row or group
+      function isFilteredOut(check) {
+        var item = check.closest('.plan-item');
+        if (!item) return false;
+        if (item.style.display === 'none') return true;
+        var group = item.closest('.plan-group');
+        return !!(group && group.style.display === 'none');
       }
 
       function setAll(state) {
         var ids = state ? readPlan() : [];
         for (var i = 0; i < checks.length; i++) {
-          checks[i].checked = state;
+          if (state) {
+            // With an active search, "Alle auswählen" only selects the matches
+            if (isFilteredOut(checks[i])) continue;
+            checks[i].checked = true;
+            if (ids.indexOf(checks[i].value) === -1) ids.push(checks[i].value);
+          } else {
+            checks[i].checked = false;
+          }
           syncItem(checks[i]);
-          if (state && ids.indexOf(checks[i].value) === -1) ids.push(checks[i].value);
         }
         writePlan(ids);
         update();
@@ -252,7 +307,7 @@ const groups = categoryInfo
       // ---- Summary section: ordered list with reorder controls ----
 
       function renderSummary() {
-        var ids = readPlan();
+        var ids = knownIds();
 
         if (ids.length === 0) {
           summaryEl.hidden = true;
@@ -333,6 +388,7 @@ const groups = categoryInfo
       summaryList.addEventListener('dragover', function (e) {
         e.preventDefault();
         if (!draggedItem) return;
+        e.dataTransfer.dropEffect = 'move';
         var target = e.target.closest('.plan-summary-item');
         if (!target || target === draggedItem) return;
         var rect = target.getBoundingClientRect();
@@ -353,25 +409,71 @@ const groups = categoryInfo
         if (!draggedItem) return;
         draggedItem.classList.remove('dragging');
         draggedItem = null;
+        persistSummaryOrder();
+      });
+
+      function persistSummaryOrder() {
         var items = summaryList.querySelectorAll('.plan-summary-item');
         var newIds = [];
         for (var i = 0; i < items.length; i++) newIds.push(items[i].dataset.id);
         writePlan(newIds);
+        update(); // refresh the pre-built print container (its order changed)
         renderSummary(); // re-render to update up/down disabled states
-      });
+      }
+
+      // Touch reordering via the ≡ handle — HTML5 drag-and-drop is mouse-only.
+      // The handle has touch-action: none, so grabbing it never scrolls the page.
+      var touchItem = null;
+      var touchMoved = false;
+
+      summaryList.addEventListener('touchstart', function (e) {
+        var handle = e.target.closest('.plan-summary-drag');
+        if (!handle || e.touches.length !== 1) return;
+        touchItem = handle.closest('.plan-summary-item');
+        touchMoved = false;
+        if (touchItem) touchItem.classList.add('dragging');
+      }, { passive: true });
+
+      summaryList.addEventListener('touchmove', function (e) {
+        if (!touchItem) return;
+        e.preventDefault(); // block page scroll while reordering
+        var t = e.touches[0];
+        var el = document.elementFromPoint(t.clientX, t.clientY);
+        var target = el && el.closest ? el.closest('.plan-summary-item') : null;
+        if (!target || target === touchItem) return;
+        var rect = target.getBoundingClientRect();
+        if (t.clientY < rect.top + rect.height / 2) {
+          target.parentNode.insertBefore(touchItem, target);
+        } else {
+          target.parentNode.insertBefore(touchItem, target.nextSibling);
+        }
+        touchMoved = true;
+      }, { passive: false });
+
+      function endTouchDrag() {
+        if (!touchItem) return;
+        touchItem.classList.remove('dragging');
+        touchItem = null;
+        if (!touchMoved) return; // plain tap on the handle — order unchanged
+        persistSummaryOrder();
+      }
+      summaryList.addEventListener('touchend', endTouchDrag);
+      summaryList.addEventListener('touchcancel', endTouchDrag);
 
       // ---- Share: encode the ordered plan in the URL ----
 
       function planUrl() {
-        return window.location.origin + '/plan/?p=' + readPlan().join(',');
+        return window.location.origin + '/plan/?p=' + knownIds().join(',');
       }
 
+      var copyResetTimer;
       copyLinkBtn.addEventListener('click', function () {
         var url = planUrl();
         var btn = this;
         function done() {
           btn.textContent = '✓ Link kopiert';
-          setTimeout(function () { btn.textContent = '🔗 Link kopieren'; }, 2000);
+          clearTimeout(copyResetTimer); // rapid double-click: keep one reset timer
+          copyResetTimer = setTimeout(function () { btn.textContent = '🔗 Link kopieren'; }, 2000);
         }
         if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard.writeText(url).then(done, function () { window.prompt('Link:', url); });
@@ -391,7 +493,7 @@ const groups = categoryInfo
       // ---- Print: render selected exercises in plan order ----
 
       function buildPrintContainer() {
-        var ids = readPlan();
+        var ids = knownIds();
         var container = document.getElementById('planPrintContainer');
         if (!container) {
           container = document.createElement('div');
@@ -444,7 +546,7 @@ const groups = categoryInfo
       });
 
       planPrint.addEventListener('click', function () {
-        if (readPlan().length === 0) {
+        if (knownIds().length === 0) {
           alert('Bitte mindestens eine Übung auswählen.');
           return;
         }
@@ -478,6 +580,75 @@ const groups = categoryInfo
       update();
       renderSummary();
 
+      // ---- Search: filter the 100+ exercises by title (umlaut-tolerant) ----
+
+      var searchInput = document.getElementById('planSearch');
+      if (searchInput) {
+        var noResults = document.getElementById('planNoResults');
+        var searchCountEl = document.getElementById('planSearchCount');
+        var searchGroups = document.querySelectorAll('.plan-group');
+        var searchItems = document.querySelectorAll('.plan-item');
+        var groupOpenStates = null; // open/closed state before the search started
+
+        // Fold umlauts/diacritics so "ubung" matches "Übung", "strasse" matches "Straße"
+        var normalize = function (s) {
+          s = (s || '').toLowerCase();
+          if (s.normalize) {
+            s = s.normalize('NFD').replace(/[̀-ͯ]/g, '');
+          }
+          return s.replace(/ß/g, 'ss');
+        };
+
+        // Precompute normalized titles once
+        var normalizedTitles = [];
+        for (var t = 0; t < searchItems.length; t++) {
+          var titleEl = searchItems[t].querySelector('.plan-title');
+          normalizedTitles.push(normalize(titleEl ? titleEl.textContent : ''));
+        }
+
+        searchInput.addEventListener('input', function () {
+          var query = normalize(searchInput.value.trim());
+
+          // Remember which groups the user had collapsed before searching
+          if (query && groupOpenStates === null) {
+            groupOpenStates = [];
+            for (var g = 0; g < searchGroups.length; g++) groupOpenStates.push(searchGroups[g].open);
+          }
+
+          var visible = 0;
+          for (var i = 0; i < searchItems.length; i++) {
+            var match = query === '' || normalizedTitles[i].indexOf(query) !== -1;
+            searchItems[i].style.display = match ? '' : 'none';
+            if (match) visible++;
+          }
+
+          // Hide groups without matches; open groups that have matches
+          for (var g2 = 0; g2 < searchGroups.length; g2++) {
+            var group = searchGroups[g2];
+            var groupItems = group.querySelectorAll('.plan-item');
+            var groupVisible = 0;
+            for (var m = 0; m < groupItems.length; m++) {
+              if (groupItems[m].style.display !== 'none') groupVisible++;
+            }
+            group.style.display = (query && groupVisible === 0) ? 'none' : '';
+            if (query && groupVisible > 0) group.open = true;
+          }
+
+          // Search cleared: restore the collapse states from before the search
+          if (query === '' && groupOpenStates !== null) {
+            for (var g3 = 0; g3 < searchGroups.length; g3++) searchGroups[g3].open = groupOpenStates[g3];
+            groupOpenStates = null;
+          }
+
+          if (noResults) noResults.hidden = visible > 0 || query === '';
+          if (searchCountEl) {
+            searchCountEl.textContent = query
+              ? visible + ' von ' + searchItems.length + ' Übungen'
+              : '';
+          }
+        });
+      }
+
       // Printing is a no-op in installed iOS PWAs — show a hint instead
       function isInstalledIOSPWA() {
         return window.navigator.standalone === true ||
@@ -499,7 +670,9 @@ const groups = categoryInfo
 <style>
   .plan-controls {
     position: sticky;
-    top: 80px; /* below fixed header */
+    /* below fixed header; the header grows by the notch inset on iOS,
+       so the sticky offset has to grow with it or the bar slides under it */
+    top: calc(80px + env(safe-area-inset-top, 0px));
     z-index: 50;
     background: var(--bg);
     padding: 12px 0;
@@ -555,11 +728,47 @@ const groups = categoryInfo
 
   .plan-group { margin-bottom: 50px; }
 
+  .plan-group-summary {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 16px;
+    cursor: pointer;
+    list-style: none; /* custom marker below */
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .plan-group-summary::-webkit-details-marker { display: none; }
+
+  .plan-group-summary::before {
+    content: '▸';
+    color: var(--accent);
+    font-size: 18px;
+    line-height: 1;
+    flex-shrink: 0;
+    align-self: center;
+  }
+
+  .plan-group[open] > .plan-group-summary::before { content: '▾'; }
+
+  .plan-group-summary:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 4px;
+  }
+
   .plan-group-title {
     font-size: clamp(22px, 3vw, 32px);
     color: var(--accent);
     letter-spacing: 1px;
-    margin-bottom: 16px;
+    margin-bottom: 0;
+  }
+
+  .plan-group-count {
+    color: var(--text-muted);
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
   }
 
   .plan-list { display: flex; flex-direction: column; gap: 8px; }
@@ -592,6 +801,17 @@ const groups = categoryInfo
     border: 1px solid var(--accent);
     padding: 20px;
     margin: 20px 0 40px;
+    /* soften the appearance when the first exercise is selected */
+    animation: plan-summary-in 0.25s ease;
+  }
+
+  @keyframes plan-summary-in {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .plan-summary { animation: none; }
   }
 
   .plan-summary h2 {
@@ -626,6 +846,7 @@ const groups = categoryInfo
 
   :global(.plan-summary-item.dragging) {
     opacity: 0.4;
+    cursor: grabbing;
   }
 
   :global(.plan-summary-drag) {
@@ -633,6 +854,17 @@ const groups = categoryInfo
     font-size: 18px;
     cursor: grab;
     user-select: none;
+    -webkit-user-select: none;
+    /* touch drag starts here — never scroll from the handle */
+    touch-action: none;
+    /* enlarge the touch target without shifting layout */
+    padding: 10px;
+    margin: -10px;
+  }
+
+  :global(.plan-summary-drag:active),
+  :global(.plan-summary-item.dragging .plan-summary-drag) {
+    cursor: grabbing;
   }
 
   :global(.plan-summary-item img) {

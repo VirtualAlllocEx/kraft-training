@@ -23,6 +23,17 @@ const { exercise } = Astro.props;
 const data = exercise.data;
 const categoryName = categoryMap[data.category];
 const canonical = new URL(`/uebung/${exercise.id}/`, Astro.site).href;
+
+// <-escaping keeps a literal "</script>" in exercise data from
+// terminating the JSON-LD script tag early (same guard as index.astro)
+const jsonLd = JSON.stringify({
+  '@context': 'https://schema.org',
+  '@type': 'ExercisePlan',
+  name: data.title,
+  image: new URL(data.image, Astro.site).href,
+  description: data.description || `${categoryName}-Übung`,
+  exerciseType: categoryName,
+}).replace(/</g, '\\u003c');
 ---
 
 <Base title={data.title} description={data.description || `${categoryName}-Übung: ${data.title}`}>
@@ -64,7 +75,7 @@ const canonical = new URL(`/uebung/${exercise.id}/`, Astro.site).href;
         )}
 
         <div class="exercise-detail-actions" style="margin-top: 40px; display: flex; gap: 12px; flex-wrap: wrap;">
-          <button type="button" class="btn-add-to-plan" data-id={exercise.id}>+ Zum Trainingsplan hinzufügen</button>
+          <button type="button" class="btn-add-to-plan" data-id={exercise.id} aria-pressed="false">+ Zum Trainingsplan hinzufügen</button>
           <button type="button" class="btn-share" data-url={canonical} data-title={data.title}>🔗 Link teilen</button>
           <button type="button" class="btn-print">🖨 Drucken</button>
         </div>
@@ -78,14 +89,7 @@ const canonical = new URL(`/uebung/${exercise.id}/`, Astro.site).href;
     </article>
   </div>
 
-  <script type="application/ld+json" set:html={JSON.stringify({
-    "@context": "https://schema.org",
-    "@type": "ExercisePlan",
-    "name": data.title,
-    "image": new URL(data.image, Astro.site).href,
-    "description": data.description || `${categoryName}-Übung`,
-    "exerciseType": categoryName,
-  })}></script>
+  <script type="application/ld+json" set:html={jsonLd}></script>
 
   <script is:inline>
     (function() {
@@ -94,27 +98,114 @@ const canonical = new URL(`/uebung/${exercise.id}/`, Astro.site).href;
       var printBtn = document.querySelector('.btn-print');
       var status = document.getElementById('shareStatus');
       var STORAGE_KEY = 'kraft:plan:v1';
+      var statusTimer = null;
 
-      function setStatus(msg) {
-        if (status) {
-          status.textContent = msg;
-          setTimeout(function() { status.textContent = ''; }, 3000);
+      function setStatus(msg, persist) {
+        if (!status) return;
+        // Reset the hide timer on every message — otherwise a timer from an
+        // earlier click wipes a newer message almost immediately
+        if (statusTimer) { clearTimeout(statusTimer); statusTimer = null; }
+        status.textContent = msg;
+        if (!persist) {
+          statusTimer = setTimeout(function() {
+            status.textContent = '';
+            statusTimer = null;
+          }, 3000);
         }
+      }
+
+      // Same storage handling as the Base layout: the stored value may be a
+      // plain array of ids or an object ({ids: []} / {current: []} formats).
+      // Reading only arrays and writing arrays back would clobber the object.
+      function readPlan() {
+        try {
+          var raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+          if (Array.isArray(raw)) return raw;
+          if (raw && Array.isArray(raw.ids)) return raw.ids;
+          if (raw && Array.isArray(raw.current)) return raw.current;
+        } catch (e) {}
+        return [];
+      }
+
+      function writePlan(ids) {
+        var raw = null;
+        // Parsed separately: a corrupt stored value must not prevent the
+        // write — it just means we start over with a plain array
+        try { raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch (e) {}
+        try {
+          if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+            if (Array.isArray(raw.ids)) raw.ids = ids;
+            else raw.current = ids;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(raw));
+          } else {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
+          }
+        } catch (e) {}
+      }
+
+      function syncAddBtn() {
+        if (!addBtn) return;
+        var id = addBtn.getAttribute('data-id');
+        var inPlan = readPlan().indexOf(id) !== -1;
+        addBtn.classList.toggle('in-plan', inPlan);
+        addBtn.textContent = inPlan ? '✓ Bereits im Plan' : '+ Zum Trainingsplan hinzufügen';
+        addBtn.setAttribute('aria-pressed', inPlan ? 'true' : 'false');
+        addBtn.setAttribute('aria-label', inPlan
+          ? 'Aus dem Trainingsplan entfernen'
+          : 'Zum Trainingsplan hinzufügen');
+      }
+
+      function countLabel(n) {
+        return n + ' Übung' + (n === 1 ? '' : 'en');
       }
 
       if (addBtn) {
         addBtn.addEventListener('click', function() {
           var id = this.getAttribute('data-id');
-          var current = [];
-          try { current = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); if (!Array.isArray(current)) current = []; } catch (e) {}
-          if (current.indexOf(id) === -1) {
-            current.push(id);
-            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(current)); } catch (e) {}
-            setStatus('✓ Zum Trainingsplan hinzugefügt (' + current.length + ' Übung' + (current.length === 1 ? '' : 'en') + ')');
+          var ids = readPlan();
+          var idx = ids.indexOf(id);
+          if (idx === -1) {
+            ids.push(id);
+            writePlan(ids);
+            setStatus('✓ Zum Trainingsplan hinzugefügt (' + countLabel(ids.length) + ')');
           } else {
-            setStatus('Bereits im Trainingsplan');
+            ids.splice(idx, 1);
+            writePlan(ids);
+            setStatus('Aus dem Trainingsplan entfernt' +
+              (ids.length > 0 ? ' (' + countLabel(ids.length) + ')' : ''));
+          }
+          syncAddBtn();
+          // Lets the header badge (Base layout) pick up the change
+          window.dispatchEvent(new CustomEvent('plan-changed'));
+        });
+
+        syncAddBtn();
+        window.addEventListener('plan-changed', syncAddBtn);
+        // bfcache restore (back button after editing the plan on /plan/)
+        window.addEventListener('pageshow', syncAddBtn);
+        // plan changed in another tab
+        window.addEventListener('storage', function(e) {
+          if (e.key === STORAGE_KEY) {
+            syncAddBtn();
+            if (window.updatePlanBadge) window.updatePlanBadge();
           }
         });
+      }
+
+      // Last-resort copy for browsers without navigator.clipboard
+      // (e.g. older WebViews, http:// contexts)
+      function legacyCopy(text) {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', '');
+        ta.style.cssText = 'position:fixed;top:-1000px;left:-1000px;opacity:0;';
+        document.body.appendChild(ta);
+        ta.select();
+        try { ta.setSelectionRange(0, text.length); } catch (e) {}
+        var ok = false;
+        try { ok = document.execCommand('copy'); } catch (e) {}
+        document.body.removeChild(ta);
+        return ok;
       }
 
       if (shareBtn) {
@@ -122,13 +213,27 @@ const canonical = new URL(`/uebung/${exercise.id}/`, Astro.site).href;
           var url = this.getAttribute('data-url');
           var title = this.getAttribute('data-title');
           if (navigator.share) {
-            try { await navigator.share({ title: title, url: url }); return; } catch (e) {}
+            try {
+              await navigator.share({ title: title, url: url });
+              return;
+            } catch (e) {
+              // User closed the share sheet — don't copy behind their back
+              if (e && e.name === 'AbortError') return;
+            }
           }
-          try {
-            await navigator.clipboard.writeText(url);
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            try {
+              await navigator.clipboard.writeText(url);
+              setStatus('✓ Link kopiert');
+              return;
+            } catch (e) {}
+          }
+          if (legacyCopy(url)) {
             setStatus('✓ Link kopiert');
-          } catch (e) {
-            setStatus('Link: ' + url);
+          } else {
+            // Nothing to copy with — show the link itself and keep it
+            // visible (no 3s auto-hide) so it can be selected by hand
+            setStatus('Link zum Kopieren: ' + url, true);
           }
         });
       }
@@ -215,12 +320,26 @@ const canonical = new URL(`/uebung/${exercise.id}/`, Astro.site).href;
   @media (hover: hover) {
     .btn-add-to-plan:hover { opacity: 0.9; color: var(--bg); }
   }
+  /* Exercise is already in the plan: quieter look, click removes it */
+  .btn-add-to-plan.in-plan {
+    background: var(--bg-card);
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+  @media (hover: hover) {
+    .btn-add-to-plan.in-plan:hover { opacity: 1; color: var(--accent); }
+  }
   .exercise-detail-share {
     margin-top: 16px;
     color: var(--accent);
     font-size: 13px;
     letter-spacing: 0.5px;
     min-height: 20px;
+    /* The clipboard-less fallback prints the full URL here: it must wrap
+       on small screens and stay selectable for manual copying */
+    overflow-wrap: anywhere;
+    -webkit-user-select: text;
+    user-select: text;
   }
   .exercise-detail-hint {
     margin-top: 24px;
@@ -243,12 +362,44 @@ const canonical = new URL(`/uebung/${exercise.id}/`, Astro.site).href;
     .back-link {
       display: none !important;
     }
-    .exercise-detail-image img {
-      background: #fff;
-      border: 1px solid #ccc;
+    /* The 100px screen offset (fixed header) just wastes paper */
+    .container-lg {
+      padding-top: 0 !important;
     }
     .exercise-detail {
       grid-template-columns: 1fr;
+      gap: 16px;
+    }
+    /* Dark-theme colors are unreadable on paper: h1 prints accent
+       yellow-green and body text prints white without these */
+    .exercise-detail-body h1 {
+      color: #000;
+    }
+    .exercise-detail-category {
+      color: #333;
+    }
+    .exercise-detail-description {
+      color: #000;
+    }
+    .exercise-detail-image img {
+      background: #fff;
+      border: 1px solid #ccc;
+      /* Cap the image so title + image + description fit on one page */
+      max-height: 12cm;
+      width: auto;
+      max-width: 100%;
+    }
+    /* global.css hides tag chips in print (grid pages); on the detail
+       page duration/players belong on the printout */
+    .exercise-detail .exercise-tags {
+      display: flex !important;
+      padding: 0;
+    }
+    .exercise-detail .exercise-tag {
+      display: inline-flex !important;
+      color: #333 !important;
+      border-color: #ccc !important;
+      background: #fff !important;
     }
   }
 </style>

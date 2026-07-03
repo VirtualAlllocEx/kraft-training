@@ -186,7 +186,11 @@ a {
   top: 0;
   left: 0;
   right: 0;
-  z-index: 100;
+  /* Must be ABOVE .nav-overlay (105): the header creates a stacking
+     context, so the burger's own z-index:110 cannot escape it — with a
+     lower header z-index the open menu would cover the burger and the
+     close (X) button would be invisible and unclickable. */
+  z-index: 110;
   padding: calc(20px + env(safe-area-inset-top, 0px)) 0 20px;
   transition: background-color 0.3s ease, padding 0.3s ease, box-shadow 0.3s ease;
 }
@@ -268,8 +272,12 @@ a {
   z-index: 105;
   background-color: var(--bg);
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  /* Deliberately NO justify-content: center — with overflowing content it
+     would push the top of the list above the scroll origin (unreachable).
+     Vertical centering comes from .nav-links' auto margins, which collapse
+     to 0 when the list is taller than the viewport, keeping it scrollable. */
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.5s ease, transform 0.5s ease;
@@ -288,6 +296,11 @@ a {
 .nav-links {
   text-align: center;
   list-style: none;
+  /* Auto main-axis margins center the list vertically and collapse to 0
+     when it overflows (phone landscape), so the first link stays reachable
+     by scrolling. Top padding clears the fixed header while scrolled. */
+  margin: auto 0;
+  padding: calc(90px + env(safe-area-inset-top, 0px)) 16px 24px;
 }
 
 .nav-links li {
@@ -339,10 +352,12 @@ a {
 }
 
 .nav-bottom {
-  position: absolute;
-  bottom: calc(40px + env(safe-area-inset-bottom, 0px));
-  left: 0;
-  right: 0;
+  /* In flow (not absolutely positioned): an abspos bottom bar would sit in
+     the first screenful of the scroll canvas and overlap the links once the
+     overflowing list is scrolled. In flow it always comes after the list. */
+  flex-shrink: 0;
+  width: 100%;
+  padding: 0 16px calc(40px + env(safe-area-inset-bottom, 0px));
   text-align: center;
 }
 
@@ -556,6 +571,19 @@ a {
   }
 }
 
+/* Broken-image cards don't open the lightbox — don't advertise a click */
+.exercise-card[data-broken="true"] {
+  cursor: default;
+}
+
+@media (hover: hover) {
+  .exercise-card[data-broken="true"]:hover {
+    transform: none;
+    border-color: var(--border);
+    box-shadow: none;
+  }
+}
+
 .exercise-card img {
   display: block;
   width: 100%;
@@ -651,7 +679,6 @@ a {
   gap: 16px;
   max-width: 90vw;
   cursor: default;
-  padding-bottom: 60px; /* room for the absolutely positioned bottom title */
   /* Auto cross-axis margins collapse to 0 when the stage is taller than the
      viewport, so the top stays reachable when .lightbox scrolls */
   margin: auto 0;
@@ -699,7 +726,6 @@ a {
 .lightbox-video {
   display: inline-flex;
   align-items: center;
-  align-self: flex-start;
   padding: 12px 20px;
   min-height: 44px;
   font-size: 14px;
@@ -735,7 +761,7 @@ a {
   font-weight: 700;
   color: var(--text);
   background: transparent;
-  border: 1px solid var(--text);
+  border: 1px solid var(--border);
   text-decoration: none;
   letter-spacing: 0.5px;
   transition: border-color 0.2s ease, color 0.2s ease;
@@ -749,7 +775,10 @@ a {
 }
 
 .lightbox-close {
-  position: absolute;
+  /* Fixed, not absolute: .lightbox is the scroll container, so an absolute
+     child would scroll out of view when the content overflows */
+  position: fixed;
+  z-index: 10;
   top: calc(20px + env(safe-area-inset-top, 0px));
   right: calc(30px + env(safe-area-inset-right, 0px));
   font-size: 30px;
@@ -775,14 +804,12 @@ a {
 }
 
 .lightbox-title {
-  position: absolute;
-  bottom: calc(30px + env(safe-area-inset-bottom, 0px));
-  left: 0;
-  right: 0;
-  text-align: center;
-  font-size: 16px;
-  color: var(--text-muted);
-  letter-spacing: 1px;
+  margin: 0 0 12px;
+  font-size: 15px;
+  color: var(--text);
+  letter-spacing: 0.5px;
+  font-weight: 700;
+  line-height: 1.35;
 }
 
 /* --- Footer --- */
@@ -921,7 +948,9 @@ html {
 /* --- Lightbox navigation arrows --- */
 .lightbox-prev,
 .lightbox-next {
-  position: absolute;
+  /* Fixed, not absolute: .lightbox is the scroll container, so absolute
+     arrows would scroll out of view when the content overflows */
+  position: fixed;
   top: 50%;
   transform: translateY(-50%);
   width: 50px;
@@ -1137,6 +1166,11 @@ html {
     max-height: 75dvh;
   }
 
+  /* Without this the stage's 90vw cap would make the img 96vw rule dead */
+  .lightbox-stage {
+    max-width: 96vw;
+  }
+
   .lightbox-close {
     top: calc(8px + env(safe-area-inset-top, 0px));
     right: calc(8px + env(safe-area-inset-right, 0px));
@@ -1155,7 +1189,6 @@ html {
   .lightbox-next { right: calc(4px + env(safe-area-inset-right, 0px)); }
 
   .lightbox-title {
-    bottom: calc(15px + env(safe-area-inset-bottom, 0px));
     font-size: 13px;
   }
 
@@ -1179,6 +1212,17 @@ html {
 
   .site-logo {
     font-size: 16px;
+  }
+
+  /* Keep logo + logout + plan badge + burger on one line */
+  .header-actions {
+    gap: 6px;
+  }
+
+  .logout-btn {
+    padding: 6px 8px;
+    font-size: 11px;
+    white-space: nowrap;
   }
 
   .hero-subtitle {
@@ -1212,6 +1256,32 @@ html {
   }
 }
 
+/* Very narrow phones: compress the header further so all three
+   header-actions (logout + plan badge + burger) fit next to the logo
+   even at 320px viewport width */
+@media (max-width: 380px) {
+  .header-inner {
+    padding: 0 max(12px, env(safe-area-inset-right, 0px)) 0 max(12px, env(safe-area-inset-left, 0px));
+  }
+
+  /* The .scrolled selector below must repeat the size: the base
+     `.scrolled .site-logo { font-size: 16px }` rule has higher specificity
+     and would otherwise make the logo GROW on scroll at this width */
+  .site-logo,
+  .site-header.scrolled .site-logo {
+    font-size: 13px;
+    letter-spacing: 1px;
+  }
+
+  .header-actions {
+    gap: 4px;
+  }
+
+  .plan-badge {
+    width: 40px;
+  }
+}
+
 @media (max-width: 360px) {
   .exercise-grid {
     grid-template-columns: 1fr;
@@ -1228,10 +1298,14 @@ html {
   margin-bottom: 24px;
 }
 
+.exercise-search-field {
+  position: relative;
+  max-width: 420px;
+}
+
 .exercise-search input {
   width: 100%;
-  max-width: 420px;
-  padding: 12px 16px;
+  padding: 12px 44px 12px 16px; /* right padding reserves room for the clear button */
   font-family: 'Inter', sans-serif;
   font-size: 16px; /* >= 16px prevents iOS Safari auto-zoom on focus */
   font-weight: 300;
@@ -1255,6 +1329,47 @@ html {
   box-shadow: 0 0 0 2px rgba(212, 254, 0, 0.25);
 }
 
+/* Hide WebKit's native clear button — we render our own cross-browser one
+   (Firefox never shows a native one) */
+.exercise-search input::-webkit-search-cancel-button,
+.exercise-search input::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
+}
+
+.exercise-search-clear {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-family: 'Inter', sans-serif;
+  font-size: 24px;
+  font-weight: 300;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+@media (hover: hover) {
+  .exercise-search-clear:hover {
+    color: var(--text);
+  }
+}
+
+.exercise-search-clear:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
 .exercise-search .exercise-no-results {
   margin-top: 16px;
   color: var(--text-muted);
@@ -1264,7 +1379,7 @@ html {
 .search-count {
   color: var(--text-muted);
   font-size: 13px;
-  padding: 0 20px 8px;
+  padding: 8px 0 0; /* align left edge with the input above */
 }
 
 .search-count:empty {
@@ -1334,6 +1449,15 @@ html {
 .exercise-plan-btn:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+/* Touch devices: a 32px target next to a card that is itself tappable
+   invites mis-taps that open the lightbox — give it more room */
+@media (pointer: coarse) {
+  .exercise-plan-btn {
+    min-height: 40px;
+    padding: 8px 12px;
+  }
 }
 
 /* --- Header plan badge --- */
