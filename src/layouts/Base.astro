@@ -121,7 +121,14 @@ const currentPath = Astro.url.pathname;
   <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Bild vergrößern" aria-hidden="true">
     <button class="lightbox-close" id="lightboxClose" aria-label="Schließen">&times;</button>
     <button class="lightbox-prev" id="lightboxPrev" aria-label="Vorheriges Bild">&#8249;</button>
-    <img id="lightboxImg" src="" alt="" />
+    <div class="lightbox-stage">
+      <img id="lightboxImg" src="" alt="" />
+      <div class="lightbox-meta" id="lightboxMeta" hidden>
+        <div class="lightbox-tags" id="lightboxTags"></div>
+        <p class="lightbox-description" id="lightboxDescription"></p>
+        <a class="lightbox-video" id="lightboxVideo" href="#" target="_blank" rel="noopener" hidden>▶ Video ansehen</a>
+      </div>
+    </div>
     <button class="lightbox-next" id="lightboxNext" aria-label="Nächstes Bild">&#8250;</button>
     <div class="lightbox-title" id="lightboxTitle" aria-live="polite" role="status"></div>
   </div>
@@ -230,6 +237,49 @@ const currentPath = Astro.url.pathname;
       var lightboxClose = document.getElementById('lightboxClose');
       var lightboxPrev = document.getElementById('lightboxPrev');
       var lightboxNext = document.getElementById('lightboxNext');
+      var lightboxMeta = document.getElementById('lightboxMeta');
+      var lightboxTags = document.getElementById('lightboxTags');
+      var lightboxDescription = document.getElementById('lightboxDescription');
+      var lightboxVideo = document.getElementById('lightboxVideo');
+
+      function updateLbMeta(entry) {
+        if (!lightboxMeta) return;
+        var hasDesc = !!(entry && entry.description);
+        var hasVideo = !!(entry && entry.video);
+        var hasDuration = !!(entry && entry.duration);
+        var hasPlayers = !!(entry && entry.players);
+        var anything = hasDesc || hasVideo || hasDuration || hasPlayers;
+
+        if (lightboxTags) {
+          lightboxTags.innerHTML = '';
+          if (hasDuration) {
+            var t1 = document.createElement('span');
+            t1.className = 'lightbox-tag';
+            t1.textContent = '⏱ ' + entry.duration;
+            lightboxTags.appendChild(t1);
+          }
+          if (hasPlayers) {
+            var t2 = document.createElement('span');
+            t2.className = 'lightbox-tag';
+            t2.textContent = '👥 ' + entry.players;
+            lightboxTags.appendChild(t2);
+          }
+        }
+        if (lightboxDescription) {
+          lightboxDescription.textContent = hasDesc ? entry.description : '';
+          lightboxDescription.hidden = !hasDesc;
+        }
+        if (lightboxVideo) {
+          if (hasVideo) {
+            lightboxVideo.href = entry.video;
+            lightboxVideo.hidden = false;
+          } else {
+            lightboxVideo.hidden = true;
+            lightboxVideo.removeAttribute('href');
+          }
+        }
+        lightboxMeta.hidden = !anything;
+      }
 
       var lbImages = [];
       var lbIndex = -1;
@@ -254,6 +304,7 @@ const currentPath = Astro.url.pathname;
         lightboxImg.src = src;
         lightboxImg.alt = title || '';
         lightboxTitle.textContent = title || '';
+        updateLbMeta(null);
         lightbox.classList.add('open');
         lightbox.setAttribute('aria-hidden', 'false');
         document.body.style.overflow = 'hidden';
@@ -286,6 +337,7 @@ const currentPath = Astro.url.pathname;
         lightboxImg.src = lbImages[idx].src;
         lightboxImg.alt = lbImages[idx].title;
         lightboxTitle.textContent = (idx + 1) + ' von ' + lbImages.length + ' – ' + lbImages[idx].title;
+        updateLbMeta(lbImages[idx]);
         if (!lightbox.classList.contains('open')) {
           lightbox.classList.add('open');
           lightbox.setAttribute('aria-hidden', 'false');

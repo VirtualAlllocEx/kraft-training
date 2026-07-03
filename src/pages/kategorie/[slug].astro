@@ -63,6 +63,10 @@ const categoryName = categoryMap[slug!] || slug;
             class="exercise-card"
             data-src={exercise.data.image}
             data-title={exercise.data.title}
+            data-description={exercise.data.description ?? ''}
+            data-video={exercise.data.videoUrl ?? ''}
+            data-duration={exercise.data.duration ?? ''}
+            data-players={exercise.data.playerCount ?? ''}
             data-index={idx}
             role="button"
             tabindex="0"
@@ -78,6 +82,12 @@ const categoryName = categoryMap[slug!] || slug;
               fetchpriority={idx < 4 ? 'high' : 'auto'}
             />
             <div class="exercise-name">{exercise.data.title}</div>
+            {(exercise.data.duration || exercise.data.playerCount) && (
+              <div class="exercise-tags">
+                {exercise.data.duration && <span class="exercise-tag">⏱ {exercise.data.duration}</span>}
+                {exercise.data.playerCount && <span class="exercise-tag">👥 {exercise.data.playerCount}</span>}
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -93,7 +103,11 @@ const categoryName = categoryMap[slug!] || slug;
       for (var i = 0; i < cards.length; i++) {
         images.push({
           src: cards[i].getAttribute('data-src'),
-          title: cards[i].getAttribute('data-title')
+          title: cards[i].getAttribute('data-title'),
+          description: cards[i].getAttribute('data-description') || '',
+          video: cards[i].getAttribute('data-video') || '',
+          duration: cards[i].getAttribute('data-duration') || '',
+          players: cards[i].getAttribute('data-players') || ''
         });
       }
 

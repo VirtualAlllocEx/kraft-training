@@ -8,6 +8,10 @@ const uebungen = defineCollection({
     category: z.enum(['aufwaermen', 'passspiel', 'torabschluss', 'spielform', 'halle', 'kondition']),
     image: z.string(),
     order: z.number().default(0),
+    description: z.string().optional(),
+    videoUrl: z.string().url().optional(),
+    duration: z.string().optional(),
+    playerCount: z.string().optional(),
   }),
 });
 
