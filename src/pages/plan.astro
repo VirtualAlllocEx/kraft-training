@@ -45,7 +45,12 @@ const groups = categoryInfo
       <p class="plan-count" id="planCount" aria-live="polite">0 Übungen ausgewählt</p>
     </div>
 
-    {groups.map(group => (
+    {groups.length === 0 ? (
+      <div class="plan-empty">
+        <p>Noch keine Übungen vorhanden.</p>
+        <p>Sobald Übungen angelegt sind, können sie hier für den Trainingsplan ausgewählt werden.</p>
+      </div>
+    ) : groups.map(group => (
       <section class="plan-group">
         <h2 class="plan-group-title">{group.name}</h2>
         <div class="plan-list">
@@ -72,9 +77,22 @@ const groups = categoryInfo
 
   <script is:inline>
     (function () {
-      var KEY = 'kraft-plan-selection';
+      var STORAGE_KEY = 'kraft:plan:v1';
+      var OLD_KEY = 'kraft-plan-selection';
       var checks = document.querySelectorAll('.plan-check');
       var countEl = document.getElementById('planCount');
+      var planPrint = document.getElementById('planPrint');
+
+      // Migrate old storage key to versioned key
+      try {
+        var oldRaw = localStorage.getItem(OLD_KEY);
+        if (oldRaw !== null) {
+          if (localStorage.getItem(STORAGE_KEY) === null) {
+            localStorage.setItem(STORAGE_KEY, oldRaw);
+          }
+          localStorage.removeItem(OLD_KEY);
+        }
+      } catch (e) {}
 
       function syncItem(check) {
         var item = check.closest('.plan-item');
@@ -86,8 +104,10 @@ const groups = categoryInfo
         for (var i = 0; i < checks.length; i++) {
           if (checks[i].checked) ids.push(checks[i].getAttribute('data-id'));
         }
-        try { localStorage.setItem(KEY, JSON.stringify(ids)); } catch (e) {}
+        // Note: orphaned ids are dropped by design (a warning was shown on load)
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(ids)); } catch (e) {}
         countEl.textContent = ids.length + (ids.length === 1 ? ' Übung ausgewählt' : ' Übungen ausgewählt');
+        planPrint.disabled = ids.length === 0;
       }
 
       function setAll(state) {
@@ -98,29 +118,129 @@ const groups = categoryInfo
         update();
       }
 
+      // Restore saved selection — tolerate corrupt / non-array data
       var saved = [];
-      try { saved = JSON.parse(localStorage.getItem(KEY)) || []; } catch (e) {}
+      try {
+        var raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+        if (Array.isArray(raw)) saved = raw;
+        else if (raw && Array.isArray(raw.ids)) saved = raw.ids; // future format
+      } catch (e) {}
+
+      var boxById = {};
+      for (var i = 0; i < checks.length; i++) {
+        boxById[checks[i].getAttribute('data-id')] = checks[i];
+      }
+
+      // Saved ids without a matching checkbox = renamed/deleted CMS entries
+      var orphanIds = [];
+      for (var i = 0; i < saved.length; i++) {
+        var id = saved[i];
+        var box = Object.prototype.hasOwnProperty.call(boxById, id) ? boxById[id] : null;
+        if (box) {
+          box.checked = true;
+        } else {
+          orphanIds.push(id);
+        }
+      }
 
       for (var i = 0; i < checks.length; i++) {
-        if (saved.indexOf(checks[i].getAttribute('data-id')) !== -1) checks[i].checked = true;
         syncItem(checks[i]);
         checks[i].addEventListener('change', function () {
           syncItem(this);
           update();
         });
       }
+
+      if (orphanIds.length > 0) {
+        var msg = document.createElement('div');
+        msg.className = 'plan-orphan-warning';
+        msg.setAttribute('role', 'alert');
+        msg.textContent = orphanIds.length + ' gespeicherte Übung' + (orphanIds.length === 1 ? '' : 'en') +
+          ' wurde' + (orphanIds.length === 1 ? '' : 'n') +
+          ' nicht mehr gefunden und aus dem Plan entfernt.';
+        var controls = document.querySelector('.plan-controls');
+        if (controls) controls.after(msg);
+      }
+
+      // Writes back storage (without orphans) and sets the print button state
       update();
 
-      document.getElementById('planPrint').addEventListener('click', function () { window.print(); });
+      // Force selected thumbnails to load before printing (lazy images can print blank)
+      function eagerLoadSelectedImages() {
+        var imgs = document.querySelectorAll('.plan-item.selected img');
+        var pending = [];
+        for (var i = 0; i < imgs.length; i++) {
+          (function (img) {
+            img.loading = 'eager';
+            img.fetchPriority = 'high';
+            if (img.complete) return;
+            pending.push(new Promise(function (resolve) {
+              img.addEventListener('load', resolve, { once: true });
+              img.addEventListener('error', resolve, { once: true });
+              setTimeout(resolve, 3000); // give up after 3s
+            }));
+          })(imgs[i]);
+        }
+        return Promise.all(pending);
+      }
+
+      window.addEventListener('beforeprint', function () {
+        var imgs = document.querySelectorAll('.plan-item.selected img');
+        for (var i = 0; i < imgs.length; i++) {
+          imgs[i].loading = 'eager';
+          imgs[i].fetchPriority = 'high';
+        }
+      });
+
+      planPrint.addEventListener('click', function () {
+        var selected = document.querySelectorAll('.plan-item input:checked');
+        if (selected.length === 0) {
+          alert('Bitte mindestens eine Übung auswählen.');
+          return;
+        }
+        eagerLoadSelectedImages().then(function () {
+          window.print();
+        });
+      });
+
       document.getElementById('planSelectAll').addEventListener('click', function () { setAll(true); });
       document.getElementById('planClear').addEventListener('click', function () { setAll(false); });
+
+      // Printing is a no-op in installed iOS PWAs — show a hint instead
+      function isInstalledIOSPWA() {
+        return window.navigator.standalone === true ||
+          (window.matchMedia('(display-mode: standalone)').matches && /iPhone|iPad|iPod/.test(navigator.userAgent));
+      }
+
+      if (isInstalledIOSPWA()) {
+        var hint = document.createElement('p');
+        hint.className = 'plan-print-hint';
+        hint.textContent = 'Zum Drucken bitte im Safari-Browser öffnen (nicht in der installierten App).';
+        hint.style.cssText = 'color: var(--text-muted); font-size: 13px; margin-top: 8px;';
+        planPrint.after(hint);
+      }
     })();
   </script>
 
 </Base>
 
 <style>
-  .plan-controls { margin-bottom: 40px; }
+  .plan-controls {
+    position: sticky;
+    top: 80px; /* below fixed header */
+    z-index: 50;
+    background: var(--bg);
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 40px;
+  }
+
+  .plan-empty {
+    padding: 40px 0 80px;
+    color: var(--text-muted);
+    font-size: 16px;
+    line-height: 1.7;
+  }
   .plan-buttons { display: flex; flex-wrap: wrap; gap: 12px; }
 
   .plan-btn {
@@ -137,9 +257,27 @@ const groups = categoryInfo
     transition: color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
   }
 
-  .plan-btn:hover { color: var(--accent); border-color: var(--accent); }
   .plan-btn--primary { color: var(--bg); background-color: var(--accent); border-color: var(--accent); }
-  .plan-btn--primary:hover { color: var(--bg); opacity: 0.85; }
+
+  @media (hover: hover) {
+    .plan-btn:hover { color: var(--accent); border-color: var(--accent); }
+    .plan-btn--primary:hover { color: var(--bg); opacity: 0.85; }
+  }
+
+  .plan-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* :global — elements below are created via JS, so Astro's scoping attribute is absent */
+  :global(.plan-orphan-warning) {
+    background: rgba(255, 70, 75, 0.1);
+    border: 1px solid var(--accent-red, #FF464B);
+    color: var(--text);
+    padding: 12px 16px;
+    margin: 12px 0;
+    font-size: 14px;
+  }
 
   .plan-count { margin-top: 14px; font-size: 14px; color: var(--text-muted); letter-spacing: 0.5px; }
 
@@ -165,12 +303,14 @@ const groups = categoryInfo
     transition: border-color 0.2s ease;
   }
 
-  .plan-item:hover { border-color: var(--accent); }
+  @media (hover: hover) {
+    .plan-item:hover { border-color: var(--accent); }
+  }
   .plan-item.selected { border-color: var(--accent); }
 
   .plan-check { order: 1; width: 18px; height: 18px; flex-shrink: 0; accent-color: var(--accent); cursor: pointer; }
   .plan-thumb { order: 2; width: 80px; height: 60px; object-fit: contain; background-color: #fff; flex-shrink: 0; }
-  .plan-title { order: 3; font-size: 14px; font-weight: 400; letter-spacing: 0.3px; line-height: 1.3; }
+  .plan-title { order: 3; font-size: 14px; font-weight: 400; letter-spacing: 0.3px; line-height: 1.3; hyphens: auto; overflow-wrap: break-word; }
   .plan-item.selected .plan-title { color: var(--accent); }
   .plan-desc, .plan-tags { display: none; }
 
@@ -212,6 +352,22 @@ const groups = categoryInfo
 
     .plan-item.selected .plan-tags { display: block; margin-top: 8pt; font-size: 10pt; color: #333; }
     .plan-item.selected .exercise-tag { border-color: #ccc; background: none; color: #333; margin-right: 8pt; }
+
+    /* No forced page break after the last printed exercise (avoids trailing blank page) */
+    .plan-item.selected:last-of-type,
+    .plan-group:last-of-type .plan-item.selected:last-child {
+      page-break-after: auto !important;
+      break-after: auto !important;
+    }
+
+    .spacer-md {
+      display: none !important;
+    }
+
+    :global(.plan-orphan-warning),
+    :global(.plan-print-hint) {
+      display: none !important;
+    }
   }
 
   @media (max-width: 700px) {

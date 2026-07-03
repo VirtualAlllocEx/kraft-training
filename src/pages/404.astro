@@ -47,9 +47,11 @@ import Base from '../layouts/Base.astro';
       transition: background 0.3s ease, color 0.3s ease;
     }
 
-    .error-page .back-link:hover {
-      background: var(--accent);
-      color: var(--bg);
+    @media (hover: hover) {
+      .error-page .back-link:hover {
+        background: var(--accent);
+        color: var(--bg);
+      }
     }
   </style>
 </Base>

@@ -31,6 +31,8 @@ const currentPath = Astro.url.pathname;
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;900&display=swap" rel="stylesheet" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="apple-touch-icon" href="/favicon.svg" />
   <link rel="manifest" href="/manifest.json" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -122,7 +124,7 @@ const currentPath = Astro.url.pathname;
   </footer>
 
   <!-- Lightbox overlay -->
-  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Bild vergrößern" aria-hidden="true">
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Bildansicht" aria-hidden="true" inert>
     <button class="lightbox-close" id="lightboxClose" aria-label="Schließen">&times;</button>
     <button class="lightbox-prev" id="lightboxPrev" aria-label="Vorheriges Bild">&#8249;</button>
     <div class="lightbox-stage">
@@ -201,12 +203,14 @@ const currentPath = Astro.url.pathname;
       }, { passive: true });
 
       scrollTopBtn.addEventListener('click', function () {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        var prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        window.scrollTo({ top: 0, behavior: prefersReduced ? 'auto' : 'smooth' });
       });
 
-      // --- Custom cursor (desktop only, event delegation) ---
+      // --- Custom cursor (fine-pointer devices only, event delegation) ---
       var circle = document.getElementById('circle');
-      if (window.innerWidth > 1100 && circle) {
+      var supportsFinePointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+      if (window.innerWidth > 1100 && supportsFinePointer && circle) {
         var mx = -100, my = -100;
         var rafId = 0;
 
@@ -246,10 +250,20 @@ const currentPath = Astro.url.pathname;
       var lightboxDescription = document.getElementById('lightboxDescription');
       var lightboxVideo = document.getElementById('lightboxVideo');
 
+      function isSafeUrl(url) {
+        if (!url) return false;
+        try {
+          var u = new URL(url);
+          return u.protocol === 'http:' || u.protocol === 'https:';
+        } catch (e) {
+          return false;
+        }
+      }
+
       function updateLbMeta(entry) {
         if (!lightboxMeta) return;
         var hasDesc = !!(entry && entry.description);
-        var hasVideo = !!(entry && entry.video);
+        var hasVideo = !!(entry && entry.video) && isSafeUrl(entry.video);
         var hasDuration = !!(entry && entry.duration);
         var hasPlayers = !!(entry && entry.players);
         var anything = hasDesc || hasVideo || hasDuration || hasPlayers;
@@ -306,6 +320,7 @@ const currentPath = Astro.url.pathname;
 
       function closeLightbox() {
         lightbox.classList.remove('open');
+        lightbox.setAttribute('inert', '');
         lightbox.setAttribute('aria-hidden', 'true');
         document.body.style.overflow = '';
         setBackgroundInert(false);
@@ -334,12 +349,14 @@ const currentPath = Astro.url.pathname;
         updateLbMeta(lbImages[idx]);
         if (!lightbox.classList.contains('open')) {
           lightbox.classList.add('open');
+          lightbox.removeAttribute('inert');
           lightbox.setAttribute('aria-hidden', 'false');
           document.body.style.overflow = 'hidden';
           setBackgroundInert(true);
+          // Only move focus on first open — not on every prev/next change
+          lightboxClose.focus();
         }
         updateLbArrows();
-        lightboxClose.focus();
       }
 
       function updateLbArrows() {
@@ -409,6 +426,8 @@ const currentPath = Astro.url.pathname;
       }, { passive: true });
 
       lightbox.addEventListener('touchmove', function (e) {
+        // Never preventDefault multi-touch (pinch-zoom must work)
+        if (e.touches.length !== 1) return;
         if (touchId !== null && lightbox.classList.contains('open')) {
           var touch = null;
           for (var t = 0; t < e.touches.length; t++) {
@@ -417,7 +436,8 @@ const currentPath = Astro.url.pathname;
           if (touch) {
             var dx = Math.abs(touch.screenX - touchStartX);
             var dy = Math.abs(touch.screenY - touchStartY);
-            if (dx > dy) e.preventDefault();
+            // Only prevent when clearly horizontal AND we're on the image itself
+            if (dx > dy && dx > 15) e.preventDefault();
           }
         }
       }, { passive: false });
@@ -443,6 +463,10 @@ const currentPath = Astro.url.pathname;
         }
       }, { passive: true });
 
+      lightbox.addEventListener('touchcancel', function () {
+        touchId = null;
+      }, { passive: true });
+
       document.addEventListener('keydown', function (e) {
         if (lightbox.classList.contains('open')) {
           if (e.key === 'Escape') { closeLightbox(); return; }
@@ -466,19 +490,29 @@ const currentPath = Astro.url.pathname;
         delete window._pendingLbImages;
       }
 
-      function initNetlifyIdentity() {
-        if (window.netlifyIdentity) {
-          window.netlifyIdentity.on('init', function (user) {
-            if (!user) {
-              window.netlifyIdentity.on('login', function () {
-                document.location.href = '/admin/';
-              });
-            }
-          });
-        }
+      // Netlify Identity: only needed for invite/recovery/confirmation links
+      // that land on the public site. Poll for the widget script because it
+      // loads async and may not be ready when this runs.
+      var h = window.location.hash;
+      var isIdentityFlow = h && (h.indexOf('invite_token') !== -1 || h.indexOf('recovery_token') !== -1 || h.indexOf('confirmation_token') !== -1);
+      if (isIdentityFlow) {
+        var attempts = 0;
+        var poll = setInterval(function () {
+          attempts++;
+          if (window.netlifyIdentity) {
+            clearInterval(poll);
+            window.netlifyIdentity.on('login', function () {
+              document.location.href = '/admin/';
+            });
+            // Also trigger the widget to open
+            window.netlifyIdentity.on('init', function () {
+              window.netlifyIdentity.open();
+            });
+          } else if (attempts > 40) { // 4s max
+            clearInterval(poll);
+          }
+        }, 100);
       }
-      initNetlifyIdentity();
-      window.addEventListener('netlifyIdentityReady', initNetlifyIdentity);
     })();
   </script>
 
@@ -486,7 +520,22 @@ const currentPath = Astro.url.pathname;
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
         try {
-          navigator.serviceWorker.register('/sw.js').catch(function () {});
+          navigator.serviceWorker.register('/sw.js').then(function (reg) {
+            reg.addEventListener('updatefound', function () {
+              var newWorker = reg.installing;
+              if (!newWorker) return;
+              newWorker.addEventListener('statechange', function () {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  /* A new version is ready: show a toast prompting reload */
+                  var toast = document.createElement('div');
+                  toast.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#D4FE00;color:#131313;padding:12px 20px;border-radius:0;font-weight:700;z-index:10001;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,0.3);';
+                  toast.textContent = 'Neue Version verfügbar – jetzt aktualisieren';
+                  toast.addEventListener('click', function () { window.location.reload(); });
+                  document.body.appendChild(toast);
+                }
+              });
+            });
+          }).catch(function () {});
         } catch (e) {
           /* Service worker registration must never break the page */
         }

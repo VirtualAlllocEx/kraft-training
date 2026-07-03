@@ -58,6 +58,7 @@ const categoryName = categoryMap[slug!] || slug;
           spellcheck="false"
         />
         <p class="exercise-no-results" id="exerciseNoResults" hidden>Keine Treffer</p>
+        <p id="searchResultCount" class="search-count" role="status" aria-live="polite" aria-atomic="true"></p>
       </div>
     )}
 
@@ -132,25 +133,35 @@ const categoryName = categoryMap[slug!] || slug;
         window._pendingLbImages = images;
       }
 
+      // Open the lightbox with only the currently visible (not filtered-out)
+      // cards, so prev/next never cycles through hidden exercises
+      function openCardLightbox(card) {
+        if (card.dataset.broken === 'true') return;
+        var visibleImages = [];
+        var visibleIdx = -1;
+        for (var v = 0; v < cards.length; v++) {
+          if (cards[v].style.display === 'none') continue;
+          if (cards[v] === card) visibleIdx = visibleImages.length;
+          visibleImages.push(images[v]);
+        }
+        if (visibleIdx === -1) return;
+        if (typeof window.setLbImages === 'function') window.setLbImages(visibleImages);
+        if (typeof window.setLbIndex === 'function') window.setLbIndex(visibleIdx);
+        if (typeof window.showLbImage === 'function') window.showLbImage(visibleIdx);
+      }
+
       for (var j = 0; j < cards.length; j++) {
-        (function (card, idx) {
+        (function (card) {
           card.addEventListener('click', function () {
-            if (this.dataset.broken === 'true') return;
-            // Re-set images on every click in case they weren't picked up
-            if (typeof window.setLbImages === 'function') window.setLbImages(images);
-            if (typeof window.setLbIndex === 'function') window.setLbIndex(idx);
-            if (typeof window.showLbImage === 'function') window.showLbImage(idx);
+            openCardLightbox(card);
           });
           card.addEventListener('keydown', function (e) {
-            if (this.dataset.broken === 'true') return;
             if (e.key === 'Enter' || e.key === ' ') {
               e.preventDefault();
-              if (typeof window.setLbImages === 'function') window.setLbImages(images);
-              if (typeof window.setLbIndex === 'function') window.setLbIndex(idx);
-              if (typeof window.showLbImage === 'function') window.showLbImage(idx);
+              openCardLightbox(card);
             }
           });
-        })(cards[j], j);
+        })(cards[j]);
       }
 
       // Image load/error handling
@@ -169,7 +180,7 @@ const categoryName = categoryMap[slug!] || slug;
         var placeholder = document.createElement('div');
         placeholder.setAttribute('role', 'img');
         placeholder.setAttribute('aria-label', img.alt + ' — Bild nicht verfügbar');
-        placeholder.style.cssText = 'width:100%;aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;background:#2a2a2a;color:#888;font-size:13px;letter-spacing:0.5px;';
+        placeholder.style.cssText = 'width:100%;aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;background:#2a2a2a;color:#c0c0c0;font-size:13px;letter-spacing:0.5px;';
         placeholder.textContent = 'Bild nicht verfügbar';
         img.parentNode.insertBefore(placeholder, img);
       }
@@ -202,19 +213,39 @@ const categoryName = categoryMap[slug!] || slug;
       if (!input || !grid) return;
 
       var cards = grid.querySelectorAll('.exercise-card');
+      var countEl = document.getElementById('searchResultCount');
+
+      // Fold umlauts/diacritics so "ubung" matches "Übung", "strasse" matches "Straße"
+      function normalize(s) {
+        s = (s || '').toLowerCase();
+        if (s.normalize) {
+          s = s.normalize('NFD').replace(/[̀-ͯ]/g, '');
+        }
+        return s.replace(/ß/g, 'ss');
+      }
+
+      // Precompute normalized titles once
+      var normalizedTitles = [];
+      for (var i = 0; i < cards.length; i++) {
+        normalizedTitles[i] = normalize(cards[i].getAttribute('data-title'));
+      }
 
       input.addEventListener('input', function () {
-        var query = input.value.trim().toLowerCase();
+        var query = normalize(input.value.trim());
         var visible = 0;
 
         for (var i = 0; i < cards.length; i++) {
-          var title = (cards[i].getAttribute('data-title') || '').toLowerCase();
-          var match = query === '' || title.indexOf(query) !== -1;
+          var match = query === '' || normalizedTitles[i].indexOf(query) !== -1;
           cards[i].style.display = match ? '' : 'none';
           if (match) visible++;
         }
 
         if (noResults) noResults.hidden = visible > 0;
+        if (countEl) {
+          countEl.textContent = query
+            ? visible + ' von ' + cards.length + ' Übungen'
+            : '';
+        }
       });
     })();
   </script>
