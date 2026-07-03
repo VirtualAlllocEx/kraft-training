@@ -1,4 +1,4 @@
+# This site is not intended for search engines.
+# Please respect the noindex header and this Disallow.
 User-agent: *
-Disallow: /admin/
-
-Sitemap: https://kraft-training.netlify.app/sitemap-index.xml
+Disallow: /
