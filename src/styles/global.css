@@ -43,6 +43,12 @@ html {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+
+  .exercise-card img:not(.loaded) {
+    background-image: none;
+    background-color: var(--bg-card);
+    animation: none;
+  }
 }
 
 body {
@@ -169,6 +175,16 @@ a:hover {
 #circle.hover {
   width: 60px;
   height: 60px;
+}
+
+/* Hide the native cursor on desktop; the JS-driven circle is the cursor */
+@media (min-width: 1101px) {
+  html, body {
+    cursor: none;
+  }
+  a, button, input, textarea, select, [role="button"], .exercise-card {
+    cursor: none;
+  }
 }
 
 /* --- Header --- */
@@ -589,7 +605,7 @@ a:hover {
   max-height: 85vh;
   object-fit: contain;
   border: 2px solid var(--border);
-  background-color: #FFFFFF;
+  background-color: #f5f5f5;
   cursor: default;
 }
 
@@ -656,7 +672,15 @@ a:hover {
 }
 
 .lightbox-video:hover {
-  opacity: 0.85;
+  opacity: 0.9;
+}
+
+/* Higher-specificity guard: generic a:hover would otherwise turn the text
+   accent-on-accent (invisible) */
+.lightbox-video,
+.lightbox-video:hover,
+.lightbox-video:focus {
+  color: var(--bg);
 }
 
 .lightbox-close {
@@ -813,7 +837,7 @@ html {
 
 /* --- Image loading state --- */
 .exercise-card img:not(.loaded) {
-  background-image: linear-gradient(135deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-image: linear-gradient(135deg, #1e1e1e 25%, #262626 50%, #1e1e1e 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite linear;
 }
@@ -917,7 +941,8 @@ html {
   }
 
   .exercise-card {
-    border: 1px solid #ccc;
+    background-color: #fff !important;
+    border: 1px solid #ccc !important;
     break-inside: avoid;
   }
 
@@ -925,9 +950,15 @@ html {
     background: #fff;
   }
 
-  .exercise-name {
+  .exercise-card .exercise-name {
     color: #000 !important;
+    background-color: #fff !important;
     border-color: #ccc !important;
+  }
+
+  .exercise-tags,
+  .exercise-tag {
+    display: none !important; /* chips don't render well in print */
   }
 
   .exercise-header h1 {
@@ -1113,7 +1144,10 @@ html {
 
   .back-link {
     font-size: 13px;
-    padding: 8px 0;
+    padding: 12px 0;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
   }
 }
 
@@ -1125,5 +1159,49 @@ html {
 
   .exercise-card img {
     aspect-ratio: 4/3;
+  }
+}
+
+/* --- Exercise search (category pages) --- */
+.exercise-search {
+  margin-bottom: 24px;
+}
+
+.exercise-search input {
+  width: 100%;
+  max-width: 420px;
+  padding: 12px 16px;
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  font-weight: 300;
+  letter-spacing: 0.5px;
+  color: var(--text);
+  background-color: var(--input-bg);
+  border: 1px solid var(--border);
+  border-radius: 0;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.exercise-search input::placeholder {
+  color: var(--text-dim);
+}
+
+.exercise-search input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(212, 254, 0, 0.25);
+}
+
+.exercise-search .exercise-no-results {
+  margin-top: 16px;
+  color: var(--text-muted);
+  font-size: 16px;
+}
+
+@media print {
+  .exercise-search {
+    display: none !important;
   }
 }

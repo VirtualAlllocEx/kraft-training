@@ -9,7 +9,7 @@
 [[redirects]]
   from = "/admin"
   to = "/admin/index.html"
-  status = 200
+  status = 301
 
 [[redirects]]
   from = "/admin/*"
@@ -46,6 +46,12 @@
   [headers.values]
     Cache-Control = "public, max-age=86400"
 
+# Service worker: must never be cached so new versions roll out immediately
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+
 # Security headers (public site) — must come BEFORE the /admin/* block below.
 # Netlify merges [[headers]] blocks that both match a URL, and later blocks
 # override earlier ones for the same header key. So the more specific
@@ -66,3 +72,4 @@
   for = "/admin/*"
   [headers.values]
     Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://identity.netlify.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://api.netlify.com https://identity.netlify.com https://*.netlify.com https://*.netlify.app https://api.github.com; frame-src 'self'"
+    Cache-Control = "no-store"

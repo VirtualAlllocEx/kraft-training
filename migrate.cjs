@@ -1,7 +1,13 @@
 const fs = require('fs');
 const path = require('path');
 
-const SOURCE_DIR = path.resolve(__dirname, '..');
+// Re-runs are non-destructive by default: existing markdown files (which may
+// contain CMS-added descriptions/videos/etc.) are skipped unless --force is given.
+const FORCE = process.argv.includes('--force');
+
+const SOURCE_DIR = process.env.MIGRATE_SOURCE_DIR
+  ? path.resolve(process.env.MIGRATE_SOURCE_DIR)
+  : path.resolve(__dirname, '..');
 const DATA_DIR = path.join(__dirname, 'src', 'data', 'uebungen');
 const IMG_DIR = path.join(__dirname, 'public', 'images', 'uebungen');
 
@@ -63,13 +69,23 @@ for (const [folderName, categorySlug] of Object.entries(CATEGORY_MAP)) {
     const srcFile = path.join(folderPath, file);
     const destFile = path.join(imgDest, file);
 
-    fs.copyFileSync(srcFile, destFile);
-    totalImages++;
+    try {
+      fs.copyFileSync(srcFile, destFile);
+      totalImages++;
+    } catch (err) {
+      console.error(`  ERROR (copy failed): ${file} -> ${destFile}: ${err.message}`);
+      continue;
+    }
 
     const titleRaw = path.basename(file, ext);
     const slug = slugify(titleRaw);
     const mdFilename = `${categorySlug}-${slug}.md`;
     const mdPath = path.join(DATA_DIR, mdFilename);
+
+    if (fs.existsSync(mdPath) && !FORCE) {
+      console.log(`  SKIP (exists, use --force to overwrite): ${mdFilename}`);
+      continue;
+    }
 
     const imagePath = `/images/uebungen/${categorySlug}/${file}`;
 
@@ -83,7 +99,12 @@ for (const [folderName, categorySlug] of Object.entries(CATEGORY_MAP)) {
       '',
     ].join('\n');
 
-    fs.writeFileSync(mdPath, frontmatter, 'utf8');
+    try {
+      fs.writeFileSync(mdPath, frontmatter, 'utf8');
+    } catch (err) {
+      console.error(`  ERROR (write failed): ${mdFilename}: ${err.message}`);
+      continue;
+    }
     totalMarkdown++;
     order++;
 

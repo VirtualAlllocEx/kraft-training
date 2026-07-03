@@ -91,6 +91,9 @@ const currentPath = Astro.url.pathname;
           </a>
         </li>
       ))}
+      <li>
+        <a href="/plan/" class={currentPath.startsWith('/plan') ? 'active' : ''}>TRAININGSPLAN</a>
+      </li>
     </ul>
     <div class="nav-bottom">
       <a href="/admin/" target="_blank" rel="noopener">ADMIN</a>
@@ -98,7 +101,7 @@ const currentPath = Astro.url.pathname;
   </nav>
 
   <!-- Page content -->
-  <main id="main-content">
+  <main id="main-content" tabindex="-1">
     <slot />
   </main>
 
@@ -111,6 +114,7 @@ const currentPath = Astro.url.pathname;
       <a href="/" class="footer-logo"><span>KRAFT.</span>TRAINING</a>
       <p class="footer-text">TRAININGSÜBUNGEN BIBLIOTHEK</p>
       <div class="footer-links">
+        <a href="/plan/">Trainingsplan</a>
         <a href="/admin/" target="_blank" rel="noopener">Admin</a>
         <a href="https://kraftader.at" target="_blank" rel="noopener">kraftader.at</a>
       </div>
@@ -284,6 +288,7 @@ const currentPath = Astro.url.pathname;
       var lbImages = [];
       var lbIndex = -1;
       var lastFocusedEl = null;
+      var lightboxCleanupTimer = null;
 
       function setBackgroundInert(inert) {
         var els = [mainContent, siteHeader, scrollTopBtn, footer];
@@ -299,20 +304,6 @@ const currentPath = Astro.url.pathname;
         }
       }
 
-      function openLightbox(src, title) {
-        lastFocusedEl = document.activeElement;
-        lightboxImg.src = src;
-        lightboxImg.alt = title || '';
-        lightboxTitle.textContent = title || '';
-        updateLbMeta(null);
-        lightbox.classList.add('open');
-        lightbox.setAttribute('aria-hidden', 'false');
-        document.body.style.overflow = 'hidden';
-        setBackgroundInert(true);
-        updateLbArrows();
-        lightboxClose.focus();
-      }
-
       function closeLightbox() {
         lightbox.classList.remove('open');
         lightbox.setAttribute('aria-hidden', 'true');
@@ -322,15 +313,18 @@ const currentPath = Astro.url.pathname;
           lastFocusedEl.focus();
         }
         lastFocusedEl = null;
-        setTimeout(function () {
+        if (lightboxCleanupTimer) clearTimeout(lightboxCleanupTimer);
+        lightboxCleanupTimer = setTimeout(function () {
           if (!lightbox.classList.contains('open')) {
             lightboxImg.src = '';
           }
+          lightboxCleanupTimer = null;
         }, 350);
       }
 
       function showLbImage(idx) {
         if (idx < 0 || idx >= lbImages.length) return;
+        if (lightboxCleanupTimer) { clearTimeout(lightboxCleanupTimer); lightboxCleanupTimer = null; }
         if (!lastFocusedEl) lastFocusedEl = document.activeElement;
         lbIndex = idx;
         window.lbIndex = idx;
@@ -381,24 +375,23 @@ const currentPath = Astro.url.pathname;
       lightbox.addEventListener('keydown', function (e) {
         if (!lightbox.classList.contains('open')) return;
         if (e.key !== 'Tab') return;
-        var allBtns = lightbox.querySelectorAll('button');
-        var focusableArr = [];
-        for (var b = 0; b < allBtns.length; b++) {
-          if (allBtns[b].offsetParent !== null) focusableArr.push(allBtns[b]);
+        var focusables = lightbox.querySelectorAll('button:not([hidden]), a[href]:not([hidden])');
+        var visible = [];
+        for (var b = 0; b < focusables.length; b++) {
+          var el = focusables[b];
+          // Skip elements hidden via CSS display:none or their parent hidden attr
+          if (el.hidden) continue;
+          var style = window.getComputedStyle(el);
+          if (style.display === 'none' || style.visibility === 'hidden') continue;
+          visible.push(el);
         }
-        if (focusableArr.length === 0) return;
-        var first = focusableArr[0];
-        var last = focusableArr[focusableArr.length - 1];
+        if (visible.length === 0) return;
+        var first = visible[0];
+        var last = visible[visible.length - 1];
         if (e.shiftKey) {
-          if (document.activeElement === first) {
-            e.preventDefault();
-            last.focus();
-          }
+          if (document.activeElement === first) { e.preventDefault(); last.focus(); }
         } else {
-          if (document.activeElement === last) {
-            e.preventDefault();
-            first.focus();
-          }
+          if (document.activeElement === last) { e.preventDefault(); first.focus(); }
         }
       });
 
@@ -462,9 +455,6 @@ const currentPath = Astro.url.pathname;
       });
 
       // Expose globally for [slug].astro
-      window.openLightbox = openLightbox;
-      window.lbImages = lbImages;
-      window.lbIndex = lbIndex;
       window.showLbImage = showLbImage;
       window.setLbImages = function (images) { lbImages = images; window.lbImages = images; };
       window.setLbIndex = function (idx) { lbIndex = idx; window.lbIndex = idx; };
@@ -490,6 +480,18 @@ const currentPath = Astro.url.pathname;
       initNetlifyIdentity();
       window.addEventListener('netlifyIdentityReady', initNetlifyIdentity);
     })();
+  </script>
+
+  <script is:inline>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        try {
+          navigator.serviceWorker.register('/sw.js').catch(function () {});
+        } catch (e) {
+          /* Service worker registration must never break the page */
+        }
+      });
+    }
   </script>
 
 </body>

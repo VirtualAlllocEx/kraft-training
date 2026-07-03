@@ -7,7 +7,7 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "migrate": "node migrate.js"
+    "migrate": "node migrate.cjs"
   },
   "dependencies": {
     "astro": "^5.0.0"

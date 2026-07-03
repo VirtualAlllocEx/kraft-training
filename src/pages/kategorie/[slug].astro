@@ -47,6 +47,20 @@ const categoryName = categoryMap[slug!] || slug;
       </div>
     </div>
 
+    {exercises.length > 0 && (
+      <div class="exercise-search">
+        <input
+          type="search"
+          id="exerciseSearch"
+          placeholder="Übung suchen…"
+          aria-label="Übung suchen"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <p class="exercise-no-results" id="exerciseNoResults" hidden>Keine Treffer</p>
+      </div>
+    )}
+
     {exercises.length === 0 ? (
       <div style="padding: 60px 0; text-align: center;">
         <p style="color: var(--text-muted); font-size: 18px;">
@@ -121,12 +135,14 @@ const categoryName = categoryMap[slug!] || slug;
       for (var j = 0; j < cards.length; j++) {
         (function (card, idx) {
           card.addEventListener('click', function () {
+            if (this.dataset.broken === 'true') return;
             // Re-set images on every click in case they weren't picked up
             if (typeof window.setLbImages === 'function') window.setLbImages(images);
             if (typeof window.setLbIndex === 'function') window.setLbIndex(idx);
             if (typeof window.showLbImage === 'function') window.showLbImage(idx);
           });
           card.addEventListener('keydown', function (e) {
+            if (this.dataset.broken === 'true') return;
             if (e.key === 'Enter' || e.key === ' ') {
               e.preventDefault();
               if (typeof window.setLbImages === 'function') window.setLbImages(images);
@@ -139,26 +155,67 @@ const categoryName = categoryMap[slug!] || slug;
 
       // Image load/error handling
       var imgs = document.querySelectorAll('.exercise-card img');
+
+      function markImageBroken(img) {
+        if (img.dataset.broken === 'true') return;
+        img.classList.add('loaded');
+        img.dataset.broken = 'true';
+        var brokenCard = img.closest('.exercise-card');
+        if (brokenCard) {
+          brokenCard.dataset.broken = 'true';
+          brokenCard.setAttribute('aria-disabled', 'true');
+        }
+        img.style.display = 'none';
+        var placeholder = document.createElement('div');
+        placeholder.setAttribute('role', 'img');
+        placeholder.setAttribute('aria-label', img.alt + ' — Bild nicht verfügbar');
+        placeholder.style.cssText = 'width:100%;aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;background:#2a2a2a;color:#888;font-size:13px;letter-spacing:0.5px;';
+        placeholder.textContent = 'Bild nicht verfügbar';
+        img.parentNode.insertBefore(placeholder, img);
+      }
+
       for (var k = 0; k < imgs.length; k++) {
         if (imgs[k].complete) {
-          imgs[k].classList.add('loaded');
+          if (imgs[k].naturalWidth === 0) {
+            // Cached broken image: complete is true but nothing decoded
+            markImageBroken(imgs[k]);
+          } else {
+            imgs[k].classList.add('loaded');
+          }
         } else {
           imgs[k].addEventListener('load', function () {
             this.classList.add('loaded');
           });
           imgs[k].addEventListener('error', function () {
-            this.classList.add('loaded');
-            this.dataset.broken = 'true';
-            this.style.display = 'none';
-            var placeholder = document.createElement('div');
-            placeholder.setAttribute('role', 'img');
-            placeholder.setAttribute('aria-label', this.alt + ' — Bild nicht verfügbar');
-            placeholder.style.cssText = 'width:100%;aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;background:#2a2a2a;color:#888;font-size:13px;letter-spacing:0.5px;';
-            placeholder.textContent = 'Bild nicht verfügbar';
-            this.parentNode.insertBefore(placeholder, this);
+            markImageBroken(this);
           });
         }
       }
+    })();
+  </script>
+
+  <script is:inline>
+    (function () {
+      var input = document.getElementById('exerciseSearch');
+      var noResults = document.getElementById('exerciseNoResults');
+      var grid = document.querySelector('.exercise-grid');
+      if (!input || !grid) return;
+
+      var cards = grid.querySelectorAll('.exercise-card');
+
+      input.addEventListener('input', function () {
+        var query = input.value.trim().toLowerCase();
+        var visible = 0;
+
+        for (var i = 0; i < cards.length; i++) {
+          var title = (cards[i].getAttribute('data-title') || '').toLowerCase();
+          var match = query === '' || title.indexOf(query) !== -1;
+          cards[i].style.display = match ? '' : 'none';
+          if (match) visible++;
+        }
+
+        if (noResults) noResults.hidden = visible > 0;
+      });
     })();
   </script>
 

@@ -34,6 +34,8 @@ collections:
       field: category
       value: aufwaermen
     sortable_fields: ['order', 'title']
+    editor:
+      preview: false
     fields:
       - { label: 'Kategorie', name: 'category', widget: 'hidden', default: 'aufwaermen' }
       - { label: 'Name der Übung', name: 'title', widget: 'string', required: true, hint: 'Kurzer, eindeutiger Name — erscheint als Überschrift der Übung.' }
@@ -60,6 +62,8 @@ collections:
       field: category
       value: passspiel
     sortable_fields: ['order', 'title']
+    editor:
+      preview: false
     fields:
       - { label: 'Kategorie', name: 'category', widget: 'hidden', default: 'passspiel' }
       - { label: 'Name der Übung', name: 'title', widget: 'string', required: true, hint: 'Kurzer, eindeutiger Name — erscheint als Überschrift der Übung.' }
@@ -86,6 +90,8 @@ collections:
       field: category
       value: torabschluss
     sortable_fields: ['order', 'title']
+    editor:
+      preview: false
     fields:
       - { label: 'Kategorie', name: 'category', widget: 'hidden', default: 'torabschluss' }
       - { label: 'Name der Übung', name: 'title', widget: 'string', required: true, hint: 'Kurzer, eindeutiger Name — erscheint als Überschrift der Übung.' }
@@ -112,6 +118,8 @@ collections:
       field: category
       value: spielform
     sortable_fields: ['order', 'title']
+    editor:
+      preview: false
     fields:
       - { label: 'Kategorie', name: 'category', widget: 'hidden', default: 'spielform' }
       - { label: 'Name der Übung', name: 'title', widget: 'string', required: true, hint: 'Kurzer, eindeutiger Name — erscheint als Überschrift der Übung.' }
@@ -138,6 +146,8 @@ collections:
       field: category
       value: halle
     sortable_fields: ['order', 'title']
+    editor:
+      preview: false
     fields:
       - { label: 'Kategorie', name: 'category', widget: 'hidden', default: 'halle' }
       - { label: 'Name der Übung', name: 'title', widget: 'string', required: true, hint: 'Kurzer, eindeutiger Name — erscheint als Überschrift der Übung.' }
@@ -164,6 +174,8 @@ collections:
       field: category
       value: kondition
     sortable_fields: ['order', 'title']
+    editor:
+      preview: false
     fields:
       - { label: 'Kategorie', name: 'category', widget: 'hidden', default: 'kondition' }
       - { label: 'Name der Übung', name: 'title', widget: 'string', required: true, hint: 'Kurzer, eindeutiger Name — erscheint als Überschrift der Übung.' }

@@ -1,6 +1,6 @@
 ---
 title: "Pass im Dreieck 5"
 category: "aufwaermen"
-image: "/images/uebungen/aufwaermen/Pass im Dreick 5.png"
+image: "/images/uebungen/aufwaermen/Pass im Dreieck 5.png"
 order: 29
 ---

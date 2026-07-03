@@ -31,7 +31,7 @@ const totalCount = allExercises.length;
         <span class="hero-line hero-line--2"><span class="accent"><span>ÜBUNGEN</span></span></span>
       </h1>
       <p class="hero-subtitle">Deine Übungsbibliothek</p>
-      <p class="hero-count">{totalCount} Übungen in {categories.length} Kategorien</p>
+      <p class="hero-count">{totalCount} {totalCount === 1 ? 'Übung' : 'Übungen'} in {categories.length} Kategorien</p>
     </div>
   </section>
 
