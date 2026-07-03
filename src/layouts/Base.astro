@@ -30,24 +30,32 @@ const currentPath = Astro.url.pathname;
   <meta name="robots" content="noindex, nofollow" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;900&display=swap" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;900&display=swap" rel="stylesheet" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="apple-touch-icon" href="/favicon.svg" />
   <link rel="manifest" href="/manifest.json" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site).href} />
   <meta property="og:title" content={`${title} | KRAFT.TRAINING`} />
   <meta property="og:description" content={description} />
   <meta property="og:type" content="website" />
   <meta property="og:locale" content="de_AT" />
   <meta property="og:site_name" content="KRAFT.TRAINING" />
-  <meta name="twitter:card" content="summary" />
+  <meta property="og:url" content={new URL(Astro.url.pathname, Astro.site).href} />
+  <meta property="og:image" content={new URL('/og-image.svg', Astro.site).href} />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta property="twitter:image" content={new URL('/og-image.svg', Astro.site).href} />
   <title>{title} | KRAFT.TRAINING</title>
   <script is:inline>{
     (function(){
       var h = window.location.hash;
       if (h && (h.indexOf('invite_token') !== -1 || h.indexOf('recovery_token') !== -1 || h.indexOf('confirmation_token') !== -1)) {
         var s = document.createElement('script');
+        // Note: no crossOrigin/SRI here — identity.netlify.com is a mutable
+        // service endpoint that does not send Access-Control-Allow-Origin,
+        // so a CORS-mode (crossorigin) fetch would be blocked by the browser.
         s.src = 'https://identity.netlify.com/v1/netlify-identity-widget.js';
         document.head.appendChild(s);
       }
@@ -98,7 +106,7 @@ const currentPath = Astro.url.pathname;
       </li>
     </ul>
     <div class="nav-bottom">
-      <a href="/admin/" target="_blank" rel="noopener">ADMIN</a>
+      <a href="/admin/" target="_blank" rel="noopener noreferrer">ADMIN</a>
     </div>
   </nav>
 
@@ -117,8 +125,8 @@ const currentPath = Astro.url.pathname;
       <p class="footer-text">TRAININGSÜBUNGEN BIBLIOTHEK</p>
       <div class="footer-links">
         <a href="/plan/">Trainingsplan</a>
-        <a href="/admin/" target="_blank" rel="noopener">Admin</a>
-        <a href="https://kraftader.at" target="_blank" rel="noopener">kraftader.at</a>
+        <a href="/admin/" target="_blank" rel="noopener noreferrer">Admin</a>
+        <a href="https://kraftader.at" target="_blank" rel="noopener noreferrer">kraftader.at</a>
       </div>
     </div>
   </footer>
@@ -132,7 +140,7 @@ const currentPath = Astro.url.pathname;
       <div class="lightbox-meta" id="lightboxMeta" hidden>
         <div class="lightbox-tags" id="lightboxTags"></div>
         <p class="lightbox-description" id="lightboxDescription"></p>
-        <a class="lightbox-video" id="lightboxVideo" href="#" target="_blank" rel="noopener" hidden>▶ Video ansehen</a>
+        <a class="lightbox-video" id="lightboxVideo" href="#" target="_blank" rel="noopener noreferrer" hidden>▶ Video ansehen</a>
       </div>
     </div>
     <button class="lightbox-next" id="lightboxNext" aria-label="Nächstes Bild">&#8250;</button>

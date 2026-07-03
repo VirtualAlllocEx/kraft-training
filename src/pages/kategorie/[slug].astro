@@ -31,12 +31,21 @@ export async function getStaticPaths() {
   });
 }
 
+const categoryDescriptions: Record<string, string> = {
+  aufwaermen: 'Aufwärmübungen für das Fußballtraining: Koordination, Passformen, Technik.',
+  passspiel: 'Passspiel-Übungen für Grundtechnik, Präzision und Spielaufbau im Fußballtraining.',
+  torabschluss: 'Torabschluss-Übungen: Torschusstraining, Abschluss unter Druck, 1-Kontakt-Torschuss.',
+  spielform: 'Spielformen im Fußballtraining: 1 gegen 1 bis 5 gegen 5, Umschaltspiel, Ballbesitz.',
+  halle: 'Übungen für das Hallentraining im Winter: kompakt, hochintensiv, technikorientiert.',
+  kondition: 'Konditions- und Ausdauerübungen für Fußballspieler.',
+};
+
 const { slug } = Astro.params;
 const { exercises } = Astro.props;
 const categoryName = categoryMap[slug!] || slug;
 ---
 
-<Base title={categoryName} description={`${categoryName} – ${exercises.length} Übungen`}>
+<Base title={categoryName} description={`${categoryDescriptions[slug!] || categoryName} ${exercises.length} Übungen zur Auswahl.`}>
 
   <div class="container-lg">
     <div class="exercise-header">
@@ -90,11 +99,11 @@ const categoryName = categoryMap[slug!] || slug;
             <img
               src={exercise.data.image}
               alt={exercise.data.title}
-              loading={idx < 8 ? 'eager' : 'lazy'}
+              loading={idx < 4 ? 'eager' : 'lazy'}
               decoding="async"
               width="600"
               height="450"
-              fetchpriority={idx < 4 ? 'high' : 'auto'}
+              fetchpriority={idx < 2 ? 'high' : 'auto'}
             />
             <div class="exercise-name">{exercise.data.title}</div>
             {(exercise.data.duration || exercise.data.playerCount) && (
@@ -249,5 +258,18 @@ const categoryName = categoryMap[slug!] || slug;
       });
     })();
   </script>
+
+  <script type="application/ld+json" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "name": categoryName,
+    "numberOfItems": exercises.length,
+    "itemListElement": exercises.map((ex, i) => ({
+      "@type": "ListItem",
+      "position": i + 1,
+      "name": ex.data.title,
+      "image": new URL(ex.data.image, Astro.site).href
+    }))
+  })}></script>
 
 </Base>

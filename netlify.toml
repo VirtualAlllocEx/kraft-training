@@ -35,11 +35,21 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-# HTML pages: short cache + stale-while-revalidate
+# Category pages: short cache with stale-while-revalidate for freshness
 [[headers]]
-  for = "/*.html"
+  for = "/kategorie/*"
   [headers.values]
-    Cache-Control = "public, max-age=3600, stale-while-revalidate=86400"
+    Cache-Control = "public, max-age=300, stale-while-revalidate=3600"
+
+[[headers]]
+  for = "/plan/*"
+  [headers.values]
+    Cache-Control = "public, max-age=300, stale-while-revalidate=3600"
+
+[[headers]]
+  for = "/"
+  [headers.values]
+    Cache-Control = "public, max-age=300, stale-while-revalidate=3600"
 
 # Manifest
 [[headers]]
@@ -65,12 +75,17 @@
     Referrer-Policy = "strict-origin-when-cross-origin"
     Strict-Transport-Security = "max-age=31536000; includeSubDomains"
     Permissions-Policy = "camera=(), microphone=(), geolocation=()"
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://identity.netlify.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.netlify.com https://*.netlify.app; frame-src 'self'"
+    # unpkg.com is only used by /admin/ (Decap CMS) which has its own CSP below,
+    # so it is intentionally absent here. identity.netlify.com stays because the
+    # invite/recovery flow conditionally loads the Identity widget on public pages.
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://identity.netlify.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://identity.netlify.com; frame-src 'self'; frame-ancestors 'none'"
 
 # Admin panel (Decap CMS) — needs 'unsafe-eval' and broader connect/img/font
 # sources. This block is LAST so its CSP overrides the global /* CSP above.
 [[headers]]
   for = "/admin/*"
   [headers.values]
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://identity.netlify.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://api.netlify.com https://identity.netlify.com https://*.netlify.com https://*.netlify.app https://api.github.com; frame-src 'self'"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://identity.netlify.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://api.netlify.com https://identity.netlify.com https://*.netlify.com https://*.netlify.app https://api.github.com; frame-src 'self'; frame-ancestors 'self'"
     Cache-Control = "no-store"
+    X-Robots-Tag = "noindex, nofollow"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), fullscreen=(self)"
