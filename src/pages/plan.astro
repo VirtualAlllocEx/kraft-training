@@ -45,6 +45,19 @@ const groups = categoryInfo
       <p class="plan-count" id="planCount" aria-live="polite">0 Übungen ausgewählt</p>
     </div>
 
+    <section class="plan-summary" id="planSummary" hidden>
+      <h2>Ausgewählte Übungen</h2>
+      <p class="plan-summary-meta">
+        <span id="planSummaryCount">0 Übungen ausgewählt</span>
+        <span id="planSummaryDuration"></span>
+      </p>
+      <ol id="planSummaryList" class="plan-summary-list"></ol>
+      <div class="plan-summary-actions">
+        <button type="button" id="planCopyLink" class="plan-btn">🔗 Link kopieren</button>
+        <button type="button" id="planShare" class="plan-btn">📤 Teilen</button>
+      </div>
+    </section>
+
     {groups.length === 0 ? (
       <div class="plan-empty">
         <p>Noch keine Übungen vorhanden.</p>
@@ -55,18 +68,15 @@ const groups = categoryInfo
         <h2 class="plan-group-title">{group.name}</h2>
         <div class="plan-list">
           {group.exercises.map(exercise => (
-            <label class="plan-item">
-              <input type="checkbox" class="plan-check" data-id={exercise.id} />
+            <label class="plan-item"
+              data-category={exercise.data.category}
+              data-duration={exercise.data.duration ?? ''}
+              data-players={exercise.data.playerCount ?? ''}
+              data-description={exercise.data.description ?? ''}>
+              <input type="checkbox" class="plan-check" value={exercise.id} />
               <span class="plan-title">{exercise.data.title}</span>
               <img class="plan-thumb" src={exercise.data.image} alt={exercise.data.title}
                 loading="lazy" decoding="async" width="120" height="90" />
-              {exercise.data.description && <span class="plan-desc">{exercise.data.description}</span>}
-              {(exercise.data.duration || exercise.data.playerCount) && (
-                <span class="plan-tags">
-                  {exercise.data.duration && <span class="exercise-tag">⏱ {exercise.data.duration}</span>}
-                  {exercise.data.playerCount && <span class="exercise-tag">👥 {exercise.data.playerCount}</span>}
-                </span>
-              )}
             </label>
           ))}
         </div>
@@ -82,6 +92,45 @@ const groups = categoryInfo
       var checks = document.querySelectorAll('.plan-check');
       var countEl = document.getElementById('planCount');
       var planPrint = document.getElementById('planPrint');
+      var summaryEl = document.getElementById('planSummary');
+      var summaryList = document.getElementById('planSummaryList');
+      var summaryCount = document.getElementById('planSummaryCount');
+      var summaryDuration = document.getElementById('planSummaryDuration');
+      var copyLinkBtn = document.getElementById('planCopyLink');
+      var shareBtn = document.getElementById('planShare');
+
+      // ---- Storage: the plan is a strictly ordered array of exercise ids ----
+
+      function readPlan() {
+        try {
+          var raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+          if (Array.isArray(raw)) return raw;
+          if (raw && Array.isArray(raw.ids)) return raw.ids;
+        } catch (e) {}
+        return [];
+      }
+
+      function writePlan(ids) {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
+        } catch (e) {}
+      }
+
+      // Parses "10 Minuten", "15 min", "5-10 min" to minutes (ranges → midpoint)
+      function parseDurationMinutes(s) {
+        if (!s) return 0;
+        var m = s.match(/(\d+)(?:\s*[-–]\s*(\d+))?/);
+        if (!m) return 0;
+        var lo = parseInt(m[1], 10);
+        var hi = m[2] ? parseInt(m[2], 10) : lo;
+        return Math.round((lo + hi) / 2);
+      }
+
+      function escapeHTML(s) {
+        return String(s).replace(/[&<>"']/g, function (c) {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+      }
 
       // Migrate old storage key to versioned key
       try {
@@ -94,60 +143,301 @@ const groups = categoryInfo
         }
       } catch (e) {}
 
+      // id -> checkbox and id -> display data lookups (built once; content is static)
+      var boxById = Object.create(null);
+      var lookup = Object.create(null);
+      for (var i = 0; i < checks.length; i++) {
+        var box = checks[i];
+        var item = box.closest('.plan-item');
+        var img = item ? item.querySelector('img') : null;
+        boxById[box.value] = box;
+        lookup[box.value] = {
+          title: (item && item.querySelector('.plan-title') && item.querySelector('.plan-title').textContent) || box.value,
+          duration: (item && item.dataset.duration) || '',
+          players: (item && item.dataset.players) || '',
+          description: (item && item.dataset.description) || '',
+          image: (img && (img.getAttribute('data-src') || img.getAttribute('src'))) || '',
+          category: (item && item.dataset.category) || ''
+        };
+      }
+
+      // URL-shared plan (?p=id1,id2,...) takes precedence over the stored plan
+      try {
+        var params = new URLSearchParams(window.location.search);
+        if (params.has('p')) {
+          var urlIds = params.get('p').split(',').filter(Boolean);
+          if (urlIds.length > 0) writePlan(urlIds);
+        }
+      } catch (e) {}
+
+      // Restore: check boxes for saved ids, drop orphans (renamed/deleted CMS entries) and dupes
+      var savedIds = readPlan();
+      var plan = [];
+      var orphanIds = [];
+      for (var i = 0; i < savedIds.length; i++) {
+        var id = savedIds[i];
+        if (boxById[id]) {
+          if (plan.indexOf(id) === -1) {
+            plan.push(id);
+            boxById[id].checked = true;
+          }
+        } else {
+          orphanIds.push(id);
+        }
+      }
+      if (plan.length !== savedIds.length) writePlan(plan);
+
       function syncItem(check) {
         var item = check.closest('.plan-item');
         if (item) item.classList.toggle('selected', check.checked);
       }
 
-      function update() {
-        var ids = [];
-        for (var i = 0; i < checks.length; i++) {
-          if (checks[i].checked) ids.push(checks[i].getAttribute('data-id'));
+      // Checked → append to plan (keeps selection order); unchecked → remove
+      function onCheckboxToggle(input) {
+        var id = input.value;
+        var current = readPlan();
+        var idx = current.indexOf(id);
+        if (input.checked && idx === -1) {
+          current.push(id);
+        } else if (!input.checked && idx !== -1) {
+          current.splice(idx, 1);
         }
-        // Note: orphaned ids are dropped by design (a warning was shown on load)
-        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(ids)); } catch (e) {}
-        countEl.textContent = ids.length + (ids.length === 1 ? ' Übung ausgewählt' : ' Übungen ausgewählt');
-        planPrint.disabled = ids.length === 0;
+        writePlan(current);
+        update();
+        renderSummary();
+      }
+
+      function update() {
+        var n = readPlan().length;
+        countEl.textContent = n + (n === 1 ? ' Übung ausgewählt' : ' Übungen ausgewählt');
+        planPrint.disabled = n === 0;
+        window.dispatchEvent(new CustomEvent('plan-changed'));
       }
 
       function setAll(state) {
+        var ids = state ? readPlan() : [];
         for (var i = 0; i < checks.length; i++) {
           checks[i].checked = state;
           syncItem(checks[i]);
+          if (state && ids.indexOf(checks[i].value) === -1) ids.push(checks[i].value);
         }
+        writePlan(ids);
         update();
+        renderSummary();
       }
 
-      // Restore saved selection — tolerate corrupt / non-array data
-      var saved = [];
-      try {
-        var raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
-        if (Array.isArray(raw)) saved = raw;
-        else if (raw && Array.isArray(raw.ids)) saved = raw.ids; // future format
-      } catch (e) {}
+      // ---- Summary section: ordered list with reorder controls ----
 
-      var boxById = {};
-      for (var i = 0; i < checks.length; i++) {
-        boxById[checks[i].getAttribute('data-id')] = checks[i];
-      }
+      function renderSummary() {
+        var ids = readPlan();
 
-      // Saved ids without a matching checkbox = renamed/deleted CMS entries
-      var orphanIds = [];
-      for (var i = 0; i < saved.length; i++) {
-        var id = saved[i];
-        var box = Object.prototype.hasOwnProperty.call(boxById, id) ? boxById[id] : null;
-        if (box) {
-          box.checked = true;
-        } else {
-          orphanIds.push(id);
+        if (ids.length === 0) {
+          summaryEl.hidden = true;
+          summaryList.innerHTML = '';
+          return;
         }
+        summaryEl.hidden = false;
+
+        summaryCount.textContent = ids.length + ' Übung' + (ids.length === 1 ? '' : 'en') + ' ausgewählt';
+        var totalMin = 0;
+        for (var j = 0; j < ids.length; j++) {
+          var dd = lookup[ids[j]];
+          if (dd) totalMin += parseDurationMinutes(dd.duration);
+        }
+        summaryDuration.textContent = totalMin > 0 ? '  •  Gesamt: ~' + totalMin + ' Min.' : '';
+
+        summaryList.innerHTML = '';
+        ids.forEach(function (id, idx) {
+          var d = lookup[id];
+          if (!d) return;
+          var li = document.createElement('li');
+          li.className = 'plan-summary-item';
+          li.draggable = true;
+          li.dataset.id = id;
+          li.innerHTML = '<span class="plan-summary-drag" aria-hidden="true">≡</span>' +
+            '<img src="' + escapeHTML(d.image) + '" alt="" width="60" height="45" loading="lazy">' +
+            '<span class="plan-summary-title">' + escapeHTML(d.title) + '</span>' +
+            '<span class="plan-summary-tags">' +
+              (d.duration ? '<span>⏱ ' + escapeHTML(d.duration) + '</span>' : '') +
+              (d.players ? '<span>👥 ' + escapeHTML(d.players) + '</span>' : '') +
+            '</span>' +
+            '<div class="plan-summary-controls">' +
+              '<button type="button" class="plan-summary-btn" data-action="up" aria-label="Nach oben"' + (idx === 0 ? ' disabled' : '') + '>▲</button>' +
+              '<button type="button" class="plan-summary-btn" data-action="down" aria-label="Nach unten"' + (idx === ids.length - 1 ? ' disabled' : '') + '>▼</button>' +
+              '<button type="button" class="plan-summary-btn" data-action="remove" aria-label="Entfernen">×</button>' +
+            '</div>';
+          summaryList.appendChild(li);
+        });
       }
+
+      // Up / down / remove buttons
+      summaryList.addEventListener('click', function (e) {
+        var btn = e.target.closest('.plan-summary-btn');
+        if (!btn) return;
+        var li = btn.closest('.plan-summary-item');
+        var id = li.dataset.id;
+        var action = btn.dataset.action;
+        var ids = readPlan();
+        var idx = ids.indexOf(id);
+        if (idx === -1) return;
+        if (action === 'up' && idx > 0) {
+          var tmp = ids[idx - 1]; ids[idx - 1] = ids[idx]; ids[idx] = tmp;
+        } else if (action === 'down' && idx < ids.length - 1) {
+          var tmp2 = ids[idx + 1]; ids[idx + 1] = ids[idx]; ids[idx] = tmp2;
+        } else if (action === 'remove') {
+          ids.splice(idx, 1);
+          var cb = boxById[id];
+          if (cb) { cb.checked = false; syncItem(cb); }
+        }
+        writePlan(ids);
+        update();
+        renderSummary();
+      });
+
+      // HTML5 drag-and-drop reordering (mouse; touch users have the arrow buttons)
+      var draggedItem = null;
+
+      summaryList.addEventListener('dragstart', function (e) {
+        var li = e.target.closest('.plan-summary-item');
+        if (!li) return;
+        draggedItem = li;
+        e.dataTransfer.effectAllowed = 'move';
+        // Firefox needs data set for the drag to start
+        try { e.dataTransfer.setData('text/plain', li.dataset.id); } catch (err) {}
+        li.classList.add('dragging');
+      });
+
+      summaryList.addEventListener('dragover', function (e) {
+        e.preventDefault();
+        if (!draggedItem) return;
+        var target = e.target.closest('.plan-summary-item');
+        if (!target || target === draggedItem) return;
+        var rect = target.getBoundingClientRect();
+        var midY = rect.top + rect.height / 2;
+        if (e.clientY < midY) {
+          target.parentNode.insertBefore(draggedItem, target);
+        } else {
+          target.parentNode.insertBefore(draggedItem, target.nextSibling);
+        }
+      });
+
+      summaryList.addEventListener('drop', function (e) {
+        e.preventDefault();
+      });
+
+      // Fires after drop AND on cancelled drags — persist whatever order the DOM is in
+      summaryList.addEventListener('dragend', function () {
+        if (!draggedItem) return;
+        draggedItem.classList.remove('dragging');
+        draggedItem = null;
+        var items = summaryList.querySelectorAll('.plan-summary-item');
+        var newIds = [];
+        for (var i = 0; i < items.length; i++) newIds.push(items[i].dataset.id);
+        writePlan(newIds);
+        renderSummary(); // re-render to update up/down disabled states
+      });
+
+      // ---- Share: encode the ordered plan in the URL ----
+
+      function planUrl() {
+        return window.location.origin + '/plan/?p=' + readPlan().join(',');
+      }
+
+      copyLinkBtn.addEventListener('click', function () {
+        var url = planUrl();
+        var btn = this;
+        function done() {
+          btn.textContent = '✓ Link kopiert';
+          setTimeout(function () { btn.textContent = '🔗 Link kopieren'; }, 2000);
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(url).then(done, function () { window.prompt('Link:', url); });
+        } else {
+          window.prompt('Link:', url);
+        }
+      });
+
+      shareBtn.addEventListener('click', function () {
+        if (navigator.share) {
+          navigator.share({ title: 'Trainingsplan', url: planUrl() }).catch(function () {});
+        } else {
+          copyLinkBtn.click();
+        }
+      });
+
+      // ---- Print: render selected exercises in plan order ----
+
+      function buildPrintContainer() {
+        var ids = readPlan();
+        var container = document.getElementById('planPrintContainer');
+        if (!container) {
+          container = document.createElement('div');
+          container.id = 'planPrintContainer';
+          container.className = 'plan-print-container';
+          document.querySelector('.container-lg').appendChild(container);
+        }
+        var sig = ids.join(',');
+        if (container.dataset.sig === sig) return container;
+        container.dataset.sig = sig;
+        container.innerHTML = '';
+        ids.forEach(function (id, idx) {
+          var d = lookup[id];
+          if (!d) return;
+          var div = document.createElement('div');
+          div.className = 'plan-print-item';
+          div.innerHTML = '<div class="plan-print-num">' + (idx + 1) + '.</div>' +
+            '<h3>' + escapeHTML(d.title) + '</h3>' +
+            '<div class="plan-print-tags">' +
+              (d.duration ? '<span>⏱ ' + escapeHTML(d.duration) + '</span>' : '') +
+              (d.players ? '<span>👥 ' + escapeHTML(d.players) + '</span>' : '') +
+            '</div>' +
+            '<img src="' + escapeHTML(d.image) + '" alt="' + escapeHTML(d.title) + '" width="800" height="600">' +
+            (d.description ? '<p>' + escapeHTML(d.description) + '</p>' : '');
+          container.appendChild(div);
+        });
+        return container;
+      }
+
+      // Wait for print images so they don't print blank
+      function waitForImages(container) {
+        var imgs = container.querySelectorAll('img');
+        var pending = [];
+        for (var i = 0; i < imgs.length; i++) {
+          (function (img) {
+            if (img.complete) return;
+            pending.push(new Promise(function (resolve) {
+              img.addEventListener('load', resolve, { once: true });
+              img.addEventListener('error', resolve, { once: true });
+              setTimeout(resolve, 3000); // give up after 3s
+            }));
+          })(imgs[i]);
+        }
+        return Promise.all(pending);
+      }
+
+      // Covers Ctrl+P / browser menu printing too
+      window.addEventListener('beforeprint', function () {
+        buildPrintContainer();
+      });
+
+      planPrint.addEventListener('click', function () {
+        if (readPlan().length === 0) {
+          alert('Bitte mindestens eine Übung auswählen.');
+          return;
+        }
+        waitForImages(buildPrintContainer()).then(function () {
+          window.print();
+        });
+      });
+
+      document.getElementById('planSelectAll').addEventListener('click', function () { setAll(true); });
+      document.getElementById('planClear').addEventListener('click', function () { setAll(false); });
 
       for (var i = 0; i < checks.length; i++) {
         syncItem(checks[i]);
         checks[i].addEventListener('change', function () {
           syncItem(this);
-          update();
+          onCheckboxToggle(this);
         });
       }
 
@@ -162,49 +452,8 @@ const groups = categoryInfo
         if (controls) controls.after(msg);
       }
 
-      // Writes back storage (without orphans) and sets the print button state
       update();
-
-      // Force selected thumbnails to load before printing (lazy images can print blank)
-      function eagerLoadSelectedImages() {
-        var imgs = document.querySelectorAll('.plan-item.selected img');
-        var pending = [];
-        for (var i = 0; i < imgs.length; i++) {
-          (function (img) {
-            img.loading = 'eager';
-            img.fetchPriority = 'high';
-            if (img.complete) return;
-            pending.push(new Promise(function (resolve) {
-              img.addEventListener('load', resolve, { once: true });
-              img.addEventListener('error', resolve, { once: true });
-              setTimeout(resolve, 3000); // give up after 3s
-            }));
-          })(imgs[i]);
-        }
-        return Promise.all(pending);
-      }
-
-      window.addEventListener('beforeprint', function () {
-        var imgs = document.querySelectorAll('.plan-item.selected img');
-        for (var i = 0; i < imgs.length; i++) {
-          imgs[i].loading = 'eager';
-          imgs[i].fetchPriority = 'high';
-        }
-      });
-
-      planPrint.addEventListener('click', function () {
-        var selected = document.querySelectorAll('.plan-item input:checked');
-        if (selected.length === 0) {
-          alert('Bitte mindestens eine Übung auswählen.');
-          return;
-        }
-        eagerLoadSelectedImages().then(function () {
-          window.print();
-        });
-      });
-
-      document.getElementById('planSelectAll').addEventListener('click', function () { setAll(true); });
-      document.getElementById('planClear').addEventListener('click', function () { setAll(false); });
+      renderSummary();
 
       // Printing is a no-op in installed iOS PWAs — show a hint instead
       function isInstalledIOSPWA() {
@@ -312,61 +561,196 @@ const groups = categoryInfo
   .plan-thumb { order: 2; width: 80px; height: 60px; object-fit: contain; background-color: #fff; flex-shrink: 0; }
   .plan-title { order: 3; font-size: 14px; font-weight: 400; letter-spacing: 0.3px; line-height: 1.3; hyphens: auto; overflow-wrap: break-word; }
   .plan-item.selected .plan-title { color: var(--accent); }
-  .plan-desc, .plan-tags { display: none; }
+
+  /* --- Summary: "Ausgewählte Übungen" --- */
+
+  .plan-summary {
+    background: var(--bg-card);
+    border: 1px solid var(--accent);
+    padding: 20px;
+    margin: 20px 0 40px;
+  }
+
+  .plan-summary h2 {
+    margin-bottom: 8px;
+  }
+
+  .plan-summary-meta {
+    color: var(--text-muted);
+    font-size: 14px;
+    margin-bottom: 16px;
+    white-space: pre-wrap;
+  }
+
+  .plan-summary-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  /* :global — summary items are created via JS */
+  :global(.plan-summary-item) {
+    display: grid;
+    grid-template-columns: auto 60px 1fr auto auto;
+    gap: 12px;
+    align-items: center;
+    padding: 8px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    margin-bottom: 6px;
+    cursor: move;
+  }
+
+  :global(.plan-summary-item.dragging) {
+    opacity: 0.4;
+  }
+
+  :global(.plan-summary-drag) {
+    color: var(--text-muted);
+    font-size: 18px;
+    cursor: grab;
+    user-select: none;
+  }
+
+  :global(.plan-summary-item img) {
+    background: #f5f5f5;
+    object-fit: cover;
+  }
+
+  :global(.plan-summary-title) {
+    font-weight: 700;
+    min-width: 0;
+    overflow-wrap: break-word;
+  }
+
+  :global(.plan-summary-tags) {
+    display: flex;
+    gap: 8px;
+    color: var(--text-muted);
+    font-size: 12px;
+  }
+
+  :global(.plan-summary-controls) {
+    display: flex;
+    gap: 4px;
+  }
+
+  :global(.plan-summary-btn) {
+    width: 32px;
+    height: 32px;
+    min-height: 32px;
+    padding: 0;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+    cursor: pointer;
+    font-size: 12px;
+  }
+
+  :global(.plan-summary-btn:disabled) {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  @media (hover: hover) {
+    :global(.plan-summary-btn:hover:not(:disabled)) {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+  }
+
+  .plan-summary-actions {
+    margin-top: 16px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  @media (max-width: 600px) {
+    :global(.plan-summary-item) {
+      grid-template-columns: auto 40px 1fr auto;
+      gap: 8px;
+    }
+    :global(.plan-summary-item img) {
+      width: 40px;
+      height: 30px;
+    }
+    :global(.plan-summary-tags) {
+      display: none;
+    }
+  }
+
+  /* --- Print: render the JS-built container in plan order --- */
+
+  :global(.plan-print-container) {
+    display: none;
+  }
 
   @media print {
-    .plan-controls, .plan-group-title, .exercise-header { display: none !important; }
-    .plan-group { margin: 0; }
-    .plan-list { display: block; }
-    .plan-item { display: none; }
-
-    .plan-item.selected {
-      display: block;
-      page-break-after: always;
-      break-after: page;
-      border: none;
-      background: #fff;
-      padding: 0;
-      cursor: auto;
-    }
-
-    .plan-item.selected .plan-check { display: none; }
-
-    .plan-item.selected .plan-title {
-      display: block;
-      font-size: 24pt;
-      font-weight: 900;
-      color: #000;
-      margin-bottom: 16pt;
-    }
-
-    .plan-item.selected .plan-thumb {
-      display: block; width: 100%; height: auto;
-      max-height: 16cm; object-fit: contain; background: #fff;
-    }
-
-    .plan-item.selected .plan-desc {
-      display: block; margin-top: 12pt; font-size: 11pt;
-      line-height: 1.6; color: #000; white-space: pre-wrap;
-    }
-
-    .plan-item.selected .plan-tags { display: block; margin-top: 8pt; font-size: 10pt; color: #333; }
-    .plan-item.selected .exercise-tag { border-color: #ccc; background: none; color: #333; margin-right: 8pt; }
-
-    /* No forced page break after the last printed exercise (avoids trailing blank page) */
-    .plan-item.selected:last-of-type,
-    .plan-group:last-of-type .plan-item.selected:last-child {
-      page-break-after: auto !important;
-      break-after: auto !important;
-    }
-
-    .spacer-md {
+    .plan-controls, .exercise-header, .plan-group, .plan-summary, .spacer-md {
       display: none !important;
     }
 
     :global(.plan-orphan-warning),
     :global(.plan-print-hint) {
       display: none !important;
+    }
+
+    :global(.plan-print-container) {
+      display: block !important;
+    }
+
+    :global(.plan-print-item) {
+      page-break-inside: avoid;
+      break-inside: avoid;
+      page-break-after: always;
+      break-after: page;
+      padding: 20px 0;
+    }
+
+    :global(.plan-print-item:last-child) {
+      break-after: auto;
+      page-break-after: auto;
+    }
+
+    :global(.plan-print-num) {
+      font-size: 12pt;
+      font-weight: 700;
+      color: #333;
+    }
+
+    :global(.plan-print-item h3) {
+      color: #000 !important;
+      font-size: 24pt;
+      font-weight: 900;
+      margin: 8px 0;
+    }
+
+    :global(.plan-print-tags) {
+      margin-bottom: 8pt;
+      font-size: 10pt;
+      color: #333;
+    }
+
+    :global(.plan-print-tags span) {
+      margin-right: 8pt;
+    }
+
+    :global(.plan-print-item img) {
+      display: block;
+      width: 100%;
+      height: auto;
+      max-height: 60vh;
+      object-fit: contain;
+      background: #fff;
+    }
+
+    :global(.plan-print-item p) {
+      margin-top: 12pt;
+      font-size: 11pt;
+      line-height: 1.6;
+      color: #000;
+      white-space: pre-wrap;
     }
   }
 

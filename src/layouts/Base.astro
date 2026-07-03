@@ -36,6 +36,8 @@ const currentPath = Astro.url.pathname;
   <link rel="apple-touch-icon" href="/favicon.svg" />
   <link rel="manifest" href="/manifest.json" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="KRAFT.TRAINING" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site).href} />
   <meta property="og:title" content={`${title} | KRAFT.TRAINING`} />
@@ -77,11 +79,17 @@ const currentPath = Astro.url.pathname;
   <header class="site-header" id="siteHeader">
     <div class="header-inner">
       <a href="/" class="site-logo"><span>KRAFT.</span>TRAINING</a>
-      <button class="burger" id="burgerBtn" aria-label="Menü öffnen" aria-expanded="false" aria-controls="navOverlay" type="button">
-        <span></span>
-        <span></span>
-        <span></span>
-      </button>
+      <div class="header-actions">
+        <a href="/plan/" class="plan-badge" id="planBadge" hidden aria-label="Trainingsplan">
+          <span class="plan-badge-icon" aria-hidden="true">📋</span>
+          <span class="plan-badge-count" id="planBadgeCount">0</span>
+        </a>
+        <button class="burger" id="burgerBtn" aria-label="Menü öffnen" aria-expanded="false" aria-controls="navOverlay" type="button">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+      </div>
     </div>
   </header>
 
@@ -104,6 +112,9 @@ const currentPath = Astro.url.pathname;
       <li>
         <a href="/plan/" class={currentPath.startsWith('/plan') ? 'active' : ''}>TRAININGSPLAN</a>
       </li>
+      <li>
+        <a href="/hilfe/" class={currentPath.includes('hilfe') ? 'active' : ''}>HILFE</a>
+      </li>
     </ul>
     <div class="nav-bottom">
       <a href="/admin/" target="_blank" rel="noopener noreferrer">ADMIN</a>
@@ -125,6 +136,7 @@ const currentPath = Astro.url.pathname;
       <p class="footer-text">TRAININGSÜBUNGEN BIBLIOTHEK</p>
       <div class="footer-links">
         <a href="/plan/">Trainingsplan</a>
+        <a href="/hilfe/">Hilfe</a>
         <a href="/admin/" target="_blank" rel="noopener noreferrer">Admin</a>
         <a href="https://kraftader.at" target="_blank" rel="noopener noreferrer">kraftader.at</a>
       </div>
@@ -140,7 +152,11 @@ const currentPath = Astro.url.pathname;
       <div class="lightbox-meta" id="lightboxMeta" hidden>
         <div class="lightbox-tags" id="lightboxTags"></div>
         <p class="lightbox-description" id="lightboxDescription"></p>
-        <a class="lightbox-video" id="lightboxVideo" href="#" target="_blank" rel="noopener noreferrer" hidden>▶ Video ansehen</a>
+        <div class="lightbox-actions">
+          <a class="lightbox-video" id="lightboxVideo" href="#" target="_blank" rel="noopener noreferrer" hidden>▶ Video ansehen</a>
+          <button type="button" class="lightbox-plan-btn" id="lightboxPlanBtn" hidden>+ Zum Plan</button>
+          <a class="lightbox-details" id="lightboxDetails" href="#" hidden>Details ansehen</a>
+        </div>
       </div>
     </div>
     <button class="lightbox-next" id="lightboxNext" aria-label="Nächstes Bild">&#8250;</button>
@@ -257,6 +273,51 @@ const currentPath = Astro.url.pathname;
       var lightboxTags = document.getElementById('lightboxTags');
       var lightboxDescription = document.getElementById('lightboxDescription');
       var lightboxVideo = document.getElementById('lightboxVideo');
+      var lightboxDetails = document.getElementById('lightboxDetails');
+      var lightboxPlanBtn = document.getElementById('lightboxPlanBtn');
+
+      // --- Trainingsplan storage helpers (shared key with /plan/) ---
+      var PLAN_STORAGE_KEY = 'kraft:plan:v1';
+
+      function readPlan() {
+        try {
+          var raw = JSON.parse(localStorage.getItem(PLAN_STORAGE_KEY) || 'null');
+          if (Array.isArray(raw)) return raw;
+          if (raw && Array.isArray(raw.ids)) return raw.ids; // future format
+          if (raw && Array.isArray(raw.current)) return raw.current; // T5 named-plans format
+        } catch (e) {}
+        return [];
+      }
+
+      function writePlan(ids) {
+        try {
+          var raw = JSON.parse(localStorage.getItem(PLAN_STORAGE_KEY) || 'null');
+          if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+            raw.current = ids;
+            localStorage.setItem(PLAN_STORAGE_KEY, JSON.stringify(raw));
+          } else {
+            localStorage.setItem(PLAN_STORAGE_KEY, JSON.stringify(ids));
+          }
+        } catch (e) {}
+      }
+
+      function updatePlanBadge() {
+        var badge = document.getElementById('planBadge');
+        var count = document.getElementById('planBadgeCount');
+        if (!badge || !count) return;
+        var ids = readPlan();
+        if (ids.length > 0) {
+          badge.hidden = false;
+          count.textContent = String(ids.length);
+          badge.setAttribute('aria-label', 'Trainingsplan, ' + ids.length + (ids.length === 1 ? ' Übung' : ' Übungen'));
+        } else {
+          badge.hidden = true;
+        }
+      }
+
+      window.updatePlanBadge = updatePlanBadge;
+      window.addEventListener('plan-changed', updatePlanBadge);
+      updatePlanBadge();
 
       function isSafeUrl(url) {
         if (!url) return false;
@@ -268,13 +329,30 @@ const currentPath = Astro.url.pathname;
         }
       }
 
+      function updateLightboxPlanBtn(entry) {
+        if (!lightboxPlanBtn) return;
+        var hasId = !!(entry && entry.id);
+        if (!hasId) {
+          lightboxPlanBtn.hidden = true;
+          return;
+        }
+        var inPlan = readPlan().indexOf(entry.id) !== -1;
+        lightboxPlanBtn.hidden = false;
+        lightboxPlanBtn.classList.toggle('in-plan', inPlan);
+        lightboxPlanBtn.textContent = inPlan ? '✓ Im Plan' : '+ Zum Plan';
+        lightboxPlanBtn.setAttribute('aria-pressed', inPlan ? 'true' : 'false');
+        lightboxPlanBtn.setAttribute('aria-label',
+          entry.title + (inPlan ? ' aus dem Trainingsplan entfernen' : ' zum Trainingsplan hinzufügen'));
+      }
+
       function updateLbMeta(entry) {
         if (!lightboxMeta) return;
         var hasDesc = !!(entry && entry.description);
         var hasVideo = !!(entry && entry.video) && isSafeUrl(entry.video);
         var hasDuration = !!(entry && entry.duration);
         var hasPlayers = !!(entry && entry.players);
-        var anything = hasDesc || hasVideo || hasDuration || hasPlayers;
+        var hasId = !!(entry && entry.id);
+        var anything = hasDesc || hasVideo || hasDuration || hasPlayers || hasId;
 
         if (lightboxTags) {
           lightboxTags.innerHTML = '';
@@ -304,6 +382,16 @@ const currentPath = Astro.url.pathname;
             lightboxVideo.removeAttribute('href');
           }
         }
+        if (lightboxDetails) {
+          if (hasId) {
+            lightboxDetails.href = '/uebung/' + encodeURIComponent(entry.id) + '/';
+            lightboxDetails.hidden = false;
+          } else {
+            lightboxDetails.hidden = true;
+            lightboxDetails.removeAttribute('href');
+          }
+        }
+        updateLightboxPlanBtn(entry);
         lightboxMeta.hidden = !anything;
       }
 
@@ -391,6 +479,24 @@ const currentPath = Astro.url.pathname;
         e.stopPropagation();
         closeLightbox();
       });
+
+      if (lightboxPlanBtn) {
+        lightboxPlanBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          var entry = lbImages[lbIndex];
+          if (!entry || !entry.id) return;
+          var ids = readPlan();
+          var idx = ids.indexOf(entry.id);
+          if (idx === -1) {
+            ids.push(entry.id);
+          } else {
+            ids.splice(idx, 1);
+          }
+          writePlan(ids);
+          updateLightboxPlanBtn(entry);
+          window.dispatchEvent(new CustomEvent('plan-changed'));
+        });
+      }
 
       lightbox.addEventListener('click', function (e) {
         if (e.target === lightbox) closeLightbox();

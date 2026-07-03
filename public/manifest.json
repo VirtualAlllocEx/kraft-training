@@ -1,11 +1,16 @@
 {
-  "name": "KRAFT.TRAINING Übungen",
-  "short_name": "Training",
-  "description": "Trainingsübungen Bibliothek",
+  "name": "KRAFT.TRAINING — Trainingsübungen",
+  "short_name": "KRAFT",
+  "description": "Trainingsübungen-Bibliothek für Fußballtrainer",
   "start_url": "/",
+  "scope": "/",
+  "id": "/",
   "display": "standalone",
+  "orientation": "any",
   "background_color": "#131313",
   "theme_color": "#131313",
+  "lang": "de",
+  "categories": ["sports", "productivity"],
   "icons": [
     {
       "src": "/icon.svg",

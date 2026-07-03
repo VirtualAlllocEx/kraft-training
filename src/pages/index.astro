@@ -19,6 +19,18 @@ const categories = categoryInfo.map(cat => ({
 }));
 
 const totalCount = allExercises.length;
+
+const allSearchable = allExercises.map(ex => ({
+  id: ex.id,
+  title: ex.data.title,
+  category: ex.data.category,
+  categoryName: categoryInfo.find(c => c.slug === ex.data.category)?.name || '',
+  image: ex.data.image,
+}));
+
+// < escaping keeps a literal "</script>" in exercise data from
+// terminating the JSON script tag early
+const allSearchableJson = JSON.stringify(allSearchable).replace(/</g, '\\u003c');
 ---
 
 <Base title="Startseite" description="Trainingsübungen-Bibliothek für Fußballtrainer: Aufwärmen, Passspiel, Torabschluss, Spielformen, Halle, Kondition. Über 100 Übungen mit Bild.">
@@ -34,6 +46,115 @@ const totalCount = allExercises.length;
       <p class="hero-count">{totalCount} {totalCount === 1 ? 'Übung' : 'Übungen'} in {categories.length} Kategorien</p>
     </div>
   </section>
+
+  <section class="home-search-section">
+    <div class="container-lg">
+      <div class="home-search">
+        <label class="home-search-label" for="homeSearchInput">Übung suchen</label>
+        <input
+          type="search"
+          id="homeSearchInput"
+          placeholder="Suchen in allen Kategorien…"
+          aria-label="Übung suchen"
+          autocomplete="off"
+          spellcheck="false"
+        />
+      </div>
+      <div id="homeSearchResults" class="home-search-results" hidden></div>
+    </div>
+  </section>
+
+  <script type="application/json" id="allExercisesData" set:html={allSearchableJson}></script>
+
+  <script is:inline>
+    (function () {
+      var input = document.getElementById('homeSearchInput');
+      var results = document.getElementById('homeSearchResults');
+      var dataEl = document.getElementById('allExercisesData');
+      if (!input || !results || !dataEl) return;
+
+      var exercises = [];
+      try {
+        exercises = JSON.parse(dataEl.textContent);
+      } catch (e) {
+        return;
+      }
+
+      // Fold umlauts/diacritics so "ubung" matches "Übung", "strasse" matches "Straße"
+      function normalize(s) {
+        s = (s || '').toLowerCase();
+        if (s.normalize) {
+          s = s.normalize('NFD').replace(/[̀-ͯ]/g, '');
+        }
+        return s.replace(/ß/g, 'ss');
+      }
+
+      // Precompute normalized titles once
+      for (var i = 0; i < exercises.length; i++) {
+        exercises[i]._norm = normalize(exercises[i].title);
+      }
+
+      function render(matches) {
+        results.innerHTML = '';
+
+        if (matches.length === 0) {
+          var empty = document.createElement('p');
+          empty.className = 'home-search-noresults';
+          empty.textContent = 'Keine Treffer';
+          results.appendChild(empty);
+          return;
+        }
+
+        for (var i = 0; i < matches.length; i++) {
+          var ex = matches[i];
+          var link = document.createElement('a');
+          link.className = 'home-search-result';
+          link.href = '/uebung/' + encodeURIComponent(ex.id) + '/';
+
+          var img = document.createElement('img');
+          img.src = ex.image;
+          img.alt = '';
+          img.loading = 'lazy';
+          img.decoding = 'async';
+          img.width = 60;
+          img.height = 45;
+          link.appendChild(img);
+
+          var title = document.createElement('span');
+          title.className = 'home-search-result-title';
+          title.textContent = ex.title;
+          link.appendChild(title);
+
+          var cat = document.createElement('span');
+          cat.className = 'home-search-result-cat';
+          cat.textContent = ex.categoryName;
+          link.appendChild(cat);
+
+          results.appendChild(link);
+        }
+      }
+
+      input.addEventListener('input', function () {
+        var query = normalize(input.value.trim());
+
+        if (query === '') {
+          results.hidden = true;
+          results.innerHTML = '';
+          return;
+        }
+
+        var matches = [];
+        for (var i = 0; i < exercises.length; i++) {
+          if (exercises[i]._norm.indexOf(query) !== -1) {
+            matches.push(exercises[i]);
+          }
+        }
+
+        render(matches);
+        results.hidden = false;
+      });
+    })();
+  </script>
 
   <section class="categories-section">
     <div class="container-lg">
@@ -167,6 +288,94 @@ const totalCount = allExercises.length;
       opacity: 1;
       transform: translateY(0);
     }
+  }
+
+  /* --- Global search --- */
+  .home-search-section {
+    padding: 40px 20px 20px;
+  }
+
+  .home-search {
+    max-width: 700px;
+    margin: 0 auto;
+  }
+
+  .home-search-label {
+    display: block;
+    color: var(--text-muted);
+    font-size: 13px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .home-search input {
+    width: 100%;
+    padding: 14px 20px;
+    font-size: 16px;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: Inter, sans-serif;
+  }
+
+  .home-search input:focus {
+    outline: 2px solid var(--accent);
+    border-color: var(--accent);
+  }
+
+  .home-search-results {
+    max-width: 700px;
+    margin: 20px auto 0;
+  }
+
+  .home-search-results:not([hidden]) {
+    display: block;
+  }
+
+  /* Result cards are created at runtime by the search script, so they
+     don't carry Astro's scoping attribute — style them via :global() */
+  .home-search-results :global(.home-search-result) {
+    display: flex;
+    gap: 12px;
+    padding: 10px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    margin-bottom: 8px;
+    text-decoration: none;
+    color: var(--text);
+    align-items: center;
+    min-height: 60px;
+  }
+
+  .home-search-results :global(.home-search-result img) {
+    width: 60px;
+    height: 45px;
+    object-fit: cover;
+    background: #f5f5f5;
+  }
+
+  @media (hover: hover) {
+    .home-search-results :global(.home-search-result:hover) {
+      border-color: var(--accent);
+    }
+  }
+
+  .home-search-results :global(.home-search-result-title) {
+    flex: 1;
+  }
+
+  .home-search-results :global(.home-search-result-cat) {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .home-search-results :global(.home-search-noresults) {
+    color: var(--text-muted);
+    text-align: center;
+    padding: 10px 0;
   }
 
   /* --- Category cards overrides --- */

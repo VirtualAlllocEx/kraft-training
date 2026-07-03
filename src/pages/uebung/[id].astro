@@ -1,0 +1,221 @@
+---
+import Base from '../../layouts/Base.astro';
+import { getCollection } from 'astro:content';
+
+const categoryMap: Record<string, string> = {
+  aufwaermen: 'Aufwärmen',
+  passspiel: 'Passspiel',
+  torabschluss: 'Torabschluss',
+  spielform: 'Spielform',
+  halle: 'Halle',
+  kondition: 'Kondition',
+};
+
+export async function getStaticPaths() {
+  const exercises = await getCollection('uebungen');
+  return exercises.map(ex => ({
+    params: { id: ex.id },
+    props: { exercise: ex },
+  }));
+}
+
+const { exercise } = Astro.props;
+const data = exercise.data;
+const categoryName = categoryMap[data.category];
+const canonical = new URL(`/uebung/${exercise.id}/`, Astro.site).href;
+---
+
+<Base title={data.title} description={data.description || `${categoryName}-Übung: ${data.title}`}>
+  <div class="container-lg" style="padding-top:100px;">
+    <div style="margin-bottom: 20px;">
+      <a href={`/kategorie/${data.category}/`} class="back-link">
+        &larr; ZURÜCK ZU {categoryName.toUpperCase()}
+      </a>
+    </div>
+
+    <article class="exercise-detail">
+      <div class="exercise-detail-image">
+        <img src={data.image} alt={data.title} loading="eager" width="1200" height="900" />
+      </div>
+
+      <div class="exercise-detail-body">
+        <h1>{data.title}</h1>
+        <p class="exercise-detail-category">{categoryName}</p>
+
+        {(data.duration || data.playerCount) && (
+          <div class="exercise-tags" style="margin: 20px 0;">
+            {data.duration && <span class="exercise-tag">⏱ {data.duration}</span>}
+            {data.playerCount && <span class="exercise-tag">👥 {data.playerCount}</span>}
+          </div>
+        )}
+
+        {data.description && (
+          <div class="exercise-detail-description">
+            <p>{data.description}</p>
+          </div>
+        )}
+
+        {data.videoUrl && (
+          <p style="margin-top: 24px;">
+            <a href={data.videoUrl} class="link-bold" target="_blank" rel="noopener noreferrer">
+              ▶ Video ansehen
+            </a>
+          </p>
+        )}
+
+        <div class="exercise-detail-actions" style="margin-top: 40px; display: flex; gap: 12px; flex-wrap: wrap;">
+          <button type="button" class="btn-add-to-plan" data-id={exercise.id}>+ Zum Trainingsplan hinzufügen</button>
+          <button type="button" class="btn-share" data-url={canonical} data-title={data.title}>🔗 Link teilen</button>
+          <button type="button" class="btn-print">🖨 Drucken</button>
+        </div>
+
+        <div class="exercise-detail-share" id="shareStatus" role="status" aria-live="polite"></div>
+      </div>
+    </article>
+  </div>
+
+  <script type="application/ld+json" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "ExercisePlan",
+    "name": data.title,
+    "image": new URL(data.image, Astro.site).href,
+    "description": data.description || `${categoryName}-Übung`,
+    "exerciseType": categoryName,
+  })}></script>
+
+  <script is:inline>
+    (function() {
+      var addBtn = document.querySelector('.btn-add-to-plan');
+      var shareBtn = document.querySelector('.btn-share');
+      var printBtn = document.querySelector('.btn-print');
+      var status = document.getElementById('shareStatus');
+      var STORAGE_KEY = 'kraft:plan:v1';
+
+      function setStatus(msg) {
+        if (status) {
+          status.textContent = msg;
+          setTimeout(function() { status.textContent = ''; }, 3000);
+        }
+      }
+
+      if (addBtn) {
+        addBtn.addEventListener('click', function() {
+          var id = this.getAttribute('data-id');
+          var current = [];
+          try { current = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); if (!Array.isArray(current)) current = []; } catch (e) {}
+          if (current.indexOf(id) === -1) {
+            current.push(id);
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(current)); } catch (e) {}
+            setStatus('✓ Zum Trainingsplan hinzugefügt (' + current.length + ' Übung' + (current.length === 1 ? '' : 'en') + ')');
+          } else {
+            setStatus('Bereits im Trainingsplan');
+          }
+        });
+      }
+
+      if (shareBtn) {
+        shareBtn.addEventListener('click', async function() {
+          var url = this.getAttribute('data-url');
+          var title = this.getAttribute('data-title');
+          if (navigator.share) {
+            try { await navigator.share({ title: title, url: url }); return; } catch (e) {}
+          }
+          try {
+            await navigator.clipboard.writeText(url);
+            setStatus('✓ Link kopiert');
+          } catch (e) {
+            setStatus('Link: ' + url);
+          }
+        });
+      }
+
+      if (printBtn) {
+        printBtn.addEventListener('click', function() { window.print(); });
+      }
+    })();
+  </script>
+</Base>
+
+<style>
+  .exercise-detail {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    align-items: start;
+  }
+  .exercise-detail-image img {
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--border);
+    background: #f5f5f5;
+    padding: 8px;
+  }
+  .exercise-detail-body h1 {
+    font-size: clamp(28px, 5vw, 48px);
+    margin-bottom: 8px;
+  }
+  .exercise-detail-category {
+    color: var(--text-muted);
+    font-size: 14px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  .exercise-detail-description {
+    margin-top: 24px;
+    font-size: 16px;
+    line-height: 1.7;
+    color: var(--text);
+    white-space: pre-wrap;
+  }
+  .btn-add-to-plan, .btn-share, .btn-print {
+    padding: 12px 20px;
+    min-height: 44px;
+    background: var(--bg-card);
+    color: var(--text);
+    border: 1px solid var(--border);
+    font-family: Inter, sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: border-color 0.2s ease, color 0.2s ease;
+  }
+  @media (hover: hover) {
+    .btn-add-to-plan:hover, .btn-share:hover, .btn-print:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+  }
+  .btn-add-to-plan { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+  @media (hover: hover) {
+    .btn-add-to-plan:hover { opacity: 0.9; color: var(--bg); }
+  }
+  .exercise-detail-share {
+    margin-top: 16px;
+    color: var(--accent);
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    min-height: 20px;
+  }
+
+  @media (max-width: 800px) {
+    .exercise-detail {
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+  }
+
+  @media print {
+    .exercise-detail-actions,
+    .exercise-detail-share,
+    .back-link {
+      display: none !important;
+    }
+    .exercise-detail-image img {
+      background: #fff;
+      border: 1px solid #ccc;
+    }
+    .exercise-detail {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

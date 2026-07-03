@@ -1,0 +1,203 @@
+---
+import Base from '../layouts/Base.astro';
+---
+<Base title="Hilfe" description="Anleitung für den Admin-Bereich von kraft-training.netlify.app">
+  <div class="container-lg" style="padding: 120px 20px 60px; max-width: 800px;">
+    <h1>Hilfe &amp; Anleitung</h1>
+    <p style="color: var(--text-muted); margin-top: 8px;">
+      Diese Anleitung erklärt, wie du Übungen auf <strong>kraft-training.netlify.app</strong>
+      hinzufügst, änderst oder löschst.
+    </p>
+
+    <div class="hilfe-note">
+      <strong>Hinweis:</strong> Der Admin-Bereich ist auf Deutsch eingestellt. Einzelne
+      Meldungen — vor allem Fehlermeldungen beim Einloggen — können trotzdem auf
+      Englisch erscheinen, weil das Login-Modul von Netlify nicht vollständig
+      übersetzt ist. Das ist normal und kein Fehler.
+    </div>
+
+    <h2>Einloggen</h2>
+    <ol>
+      <li>Öffne im Browser: <a href="/admin/" class="link-bold">https://kraft-training.netlify.app/admin/</a></li>
+      <li>Klicke auf <strong>„Mit Netlify Identity einloggen“</strong>.</li>
+      <li>E-Mail-Adresse und Passwort eingeben → <strong>Login</strong>.</li>
+    </ol>
+    <p>Nach dem Einloggen siehst du links die 6 Kategorien: Aufwärmen, Passspiel, Torabschluss, Spielform, Halle, Kondition.</p>
+
+    <h2>Neue Übung hinzufügen</h2>
+    <ol>
+      <li>Links auf die gewünschte <strong>Kategorie</strong> klicken (z.B. „Aufwärmen“).</li>
+      <li>Oben rechts auf <strong>„Neue Aufwärm-Übung“</strong> klicken.</li>
+      <li>
+        Formular ausfüllen:
+        <ul>
+          <li><strong>Name der Übung</strong> — z.B. „Passspiel im Quadrat“ <em>(Pflicht)</em></li>
+          <li><strong>Übungsbild</strong> — Bild vom Computer hochladen, maximal 1 MB <em>(Pflicht)</em></li>
+          <li><strong>Reihenfolge</strong> — Zahl, kleiner = weiter vorne <em>(optional, leer lassen = Sortierung nach Name)</em></li>
+          <li><strong>Beschreibung</strong> — was wird trainiert, wie läuft die Übung <em>(optional)</em></li>
+          <li><strong>Video-Link</strong> — YouTube- oder Vimeo-URL, muss mit <code>http://</code> oder <code>https://</code> beginnen <em>(optional)</em></li>
+          <li><strong>Dauer</strong> — z.B. „10 Minuten“ <em>(optional)</em></li>
+          <li><strong>Spielerzahl</strong> — z.B. „8 Spieler“ oder „4 vs 4“ <em>(optional)</em></li>
+        </ul>
+      </li>
+      <li>Oben rechts auf <strong>„Speichern“</strong> klicken.</li>
+    </ol>
+    <p>Die Übung ist jetzt ein <strong>Entwurf</strong>. Sie ist noch nicht online.</p>
+
+    <h2>Entwurf veröffentlichen</h2>
+    <p>Damit eine gespeicherte Übung wirklich auf der Website erscheint, gibt es zwei Wege:</p>
+
+    <h3>Der schnelle Weg (direkt im Editor)</h3>
+    <p>
+      Oben in der Leiste des Editors gibt es das Menü
+      <strong>„Veröffentlichen“ → „Jetzt veröffentlichen“</strong>. Damit ist die Übung sofort
+      freigegeben — du musst nicht extra zum Workflow-Board wechseln.
+    </p>
+
+    <h3>Der Weg über das Workflow-Board</h3>
+    <ol>
+      <li>Links oben auf <strong>„Workflow“</strong> klicken.</li>
+      <li>Deine Übung erscheint in der Spalte <strong>„Entwürfe“</strong>.</li>
+      <li>Ziehe die Karte nach rechts in die Spalte „Bereit“ — oder klicke in der Übung auf <strong>„Status setzen: Bereit“</strong> (je nach Version heißt der Punkt auch „Zur Freigabe“).</li>
+      <li>Dann auf <strong>„Jetzt veröffentlichen“</strong> klicken.</li>
+    </ol>
+    <p>Nach ca. <strong>1-2 Minuten</strong> ist die Übung auf <strong>kraft-training.netlify.app</strong> live.</p>
+
+    <div class="hilfe-note">
+      <strong>Warum dieser Umweg?</strong> So kannst du in Ruhe an einer Übung arbeiten,
+      ohne dass sie sofort öffentlich sichtbar wird. Erst wenn du auf
+      „Jetzt veröffentlichen“ klickst, wird sie online gestellt.
+    </div>
+
+    <h2>Übung bearbeiten</h2>
+    <ol>
+      <li>Kategorie öffnen → Übung in der Liste anklicken.</li>
+      <li>Änderungen machen → <strong>„Speichern“</strong>.</li>
+      <li>Danach wieder veröffentlichen: entweder direkt im Editor über <strong>„Veröffentlichen“ → „Jetzt veröffentlichen“</strong> oder im <strong>Workflow</strong> über „Bereit“ → „Jetzt veröffentlichen“.</li>
+    </ol>
+
+    <h2>Übung löschen</h2>
+    <ol>
+      <li>Kategorie öffnen → Übung anklicken.</li>
+      <li>Oben auf <strong>„Eintrag löschen“</strong> klicken.</li>
+      <li>Bestätigen. Nach 1-2 Minuten ist sie von der Website entfernt.</li>
+    </ol>
+
+    <div class="hilfe-warn">
+      <strong>⚠ Achtung:</strong> Gelöschte Übungen kann nur der Entwickler
+      wiederherstellen — im Zweifel lieber melden statt löschen.
+    </div>
+
+    <h2>Bilder verwalten</h2>
+    <ul>
+      <li>Beim Feld <strong>„Übungsbild“</strong> auf <strong>„Bild auswählen“</strong> klicken.</li>
+      <li>Oben auf <strong>„Hochladen“</strong> → Bild vom Computer wählen.</li>
+      <li>Optimal: <strong>quadratisch oder 4:3</strong>, JPG oder PNG.</li>
+      <li>Maximale Dateigröße: <strong>1 MB</strong> — größere Bilder werden abgelehnt. Bei Bedarf das Foto vorher verkleinern (z.B. per Handy-Screenshot oder einem Online-Verkleinerer).</li>
+      <li>Bereits hochgeladene Bilder erscheinen in der Bildergalerie und können wiederverwendet werden.</li>
+    </ul>
+
+    <h2>Häufige Fragen</h2>
+
+    <h3>Wo ist der „Neue Kategorie“-Knopf?</h3>
+    <p>
+      Die 6 Kategorien sind fest eingebaut. Neue Kategorien müssen vom Entwickler
+      angelegt werden (Änderung im Code + Deploy).
+    </p>
+
+    <h3>Ich habe was falsch gemacht — wie kann ich rückgängig?</h3>
+    <p>
+      Solange du noch nicht auf <strong>„Jetzt veröffentlichen“</strong> geklickt hast: den
+      Entwurf einfach im <strong>Workflow</strong> löschen. Nach dem Veröffentlichen: die
+      Übung im Admin öffnen, korrigieren, wieder speichern und veröffentlichen.
+    </p>
+
+    <h3>Wie lange dauert es bis die Änderung sichtbar ist?</h3>
+    <p>
+      Nach „Jetzt veröffentlichen“ ca. <strong>1-2 Minuten</strong>. Wenn du nichts siehst:
+      Seite im Browser komplett neu laden — unter <strong>Windows: Strg+Umschalt+R</strong>
+      (Ctrl+Shift+R), am <strong>Mac: Cmd+Shift+R</strong>.
+    </p>
+
+    <h3>Ich sehe die Änderung nicht auf dem Handy.</h3>
+    <p>Der Browser cached alte Versionen. Neu laden oder App-Cache leeren.</p>
+
+    <h3>Warum ist eine Meldung plötzlich auf Englisch?</h3>
+    <p>
+      Das Login-Modul (Netlify Identity) ist nicht vollständig übersetzt.
+      Englische Meldungen dort sind normal — die Funktion ist dieselbe.
+    </p>
+
+    <h2>Passwort vergessen?</h2>
+    <p>
+      Auf der Login-Seite auf <strong>„Passwort vergessen?“</strong> klicken.
+      Netlify schickt einen Reset-Link an deine E-Mail-Adresse.
+    </p>
+
+    <h2>Bei Problemen</h2>
+    <p>Erreichbar unter: <a href="mailto:daniel@redops.at" class="link-bold">daniel@redops.at</a></p>
+  </div>
+</Base>
+
+<style>
+  h1 {
+    margin-bottom: 8px;
+    font-size: clamp(32px, 5vw, 48px);
+  }
+  h2 {
+    margin-top: 40px;
+    margin-bottom: 16px;
+    font-size: clamp(22px, 3vw, 30px);
+    color: var(--text);
+  }
+  h3 {
+    margin-top: 28px;
+    margin-bottom: 12px;
+    font-size: clamp(18px, 2.5vw, 22px);
+    color: var(--text);
+  }
+  p, ol, ul {
+    color: var(--text);
+    margin-bottom: 16px;
+    line-height: 1.7;
+  }
+  ol, ul {
+    padding-left: 24px;
+  }
+  li {
+    margin-bottom: 8px;
+  }
+  li ul {
+    margin-top: 8px;
+    margin-bottom: 0;
+  }
+  strong {
+    color: var(--accent);
+  }
+  code {
+    background: rgba(255, 255, 255, 0.08);
+    padding: 1px 6px;
+    font-size: 0.9em;
+  }
+  .hilfe-note {
+    background: rgba(212, 254, 0, 0.05);
+    border-left: 3px solid var(--accent);
+    padding: 16px 20px;
+    margin: 20px 0;
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .hilfe-warn {
+    background: rgba(255, 70, 75, 0.05);
+    border-left: 3px solid #FF464B;
+    padding: 16px 20px;
+    margin: 20px 0;
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .hilfe-warn strong {
+    color: #FF464B;
+  }
+</style>

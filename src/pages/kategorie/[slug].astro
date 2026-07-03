@@ -85,7 +85,9 @@ const categoryName = categoryMap[slug!] || slug;
         {exercises.map((exercise, idx) => (
           <div
             class="exercise-card"
+            data-id={exercise.id}
             data-src={exercise.data.image}
+            data-id={exercise.id}
             data-title={exercise.data.title}
             data-description={exercise.data.description ?? ''}
             data-video={exercise.data.videoUrl ?? ''}
@@ -112,6 +114,19 @@ const categoryName = categoryMap[slug!] || slug;
                 {exercise.data.playerCount && <span class="exercise-tag">👥 {exercise.data.playerCount}</span>}
               </div>
             )}
+            <button
+              type="button"
+              class="exercise-plan-btn"
+              data-id={exercise.id}
+              data-add-label={`${exercise.data.title} zum Trainingsplan hinzufügen`}
+              data-remove-label={`${exercise.data.title} aus dem Trainingsplan entfernen`}
+              aria-label={`${exercise.data.title} zum Trainingsplan hinzufügen`}
+              aria-pressed="false"
+            >
+              <span class="exercise-plan-btn-plus" aria-hidden="true">+</span>
+              <span class="exercise-plan-btn-text">Plan</span>
+              <span class="exercise-plan-btn-check" aria-hidden="true">✓</span>
+            </button>
           </div>
         ))}
       </div>
@@ -126,12 +141,14 @@ const categoryName = categoryMap[slug!] || slug;
       var images = [];
       for (var i = 0; i < cards.length; i++) {
         images.push({
+          id: cards[i].getAttribute('data-id') || '',
           src: cards[i].getAttribute('data-src'),
           title: cards[i].getAttribute('data-title'),
           description: cards[i].getAttribute('data-description') || '',
           video: cards[i].getAttribute('data-video') || '',
           duration: cards[i].getAttribute('data-duration') || '',
-          players: cards[i].getAttribute('data-players') || ''
+          players: cards[i].getAttribute('data-players') || '',
+          id: cards[i].getAttribute('data-id') || ''
         });
       }
 
@@ -161,10 +178,13 @@ const categoryName = categoryMap[slug!] || slug;
 
       for (var j = 0; j < cards.length; j++) {
         (function (card) {
-          card.addEventListener('click', function () {
+          card.addEventListener('click', function (e) {
+            if (this.dataset.broken === 'true') return;
+            if (e.target.closest('.exercise-plan-btn')) return; // let the plan button handle it
             openCardLightbox(card);
           });
           card.addEventListener('keydown', function (e) {
+            if (e.target.closest('.exercise-plan-btn')) return; // let the plan button handle it
             if (e.key === 'Enter' || e.key === ' ') {
               e.preventDefault();
               openCardLightbox(card);
@@ -255,6 +275,84 @@ const categoryName = categoryMap[slug!] || slug;
             ? visible + ' von ' + cards.length + ' Übungen'
             : '';
         }
+      });
+
+      // Prefill from ?suche= — used by the homepage global search links
+      try {
+        var pre = new URLSearchParams(window.location.search).get('suche');
+        if (pre) {
+          input.value = pre;
+          input.dispatchEvent(new Event('input'));
+        }
+      } catch (e) { /* older browsers: just show the unfiltered list */ }
+    })();
+  </script>
+
+  <script is:inline>
+    (function () {
+      var STORAGE_KEY = 'kraft:plan:v1';
+
+      function readPlan() {
+        try {
+          var raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+          if (Array.isArray(raw)) return raw;
+          if (raw && Array.isArray(raw.ids)) return raw.ids; // future format
+        } catch (e) {}
+        return [];
+      }
+
+      function writePlan(ids) {
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(ids)); } catch (e) {}
+      }
+
+      function updateBtnState(card, inPlan) {
+        var btn = card.querySelector('.exercise-plan-btn');
+        if (!btn) return;
+        card.classList.toggle('in-plan', inPlan);
+        btn.setAttribute('aria-pressed', inPlan ? 'true' : 'false');
+        btn.setAttribute('aria-label',
+          inPlan ? btn.getAttribute('data-remove-label') || 'Aus dem Trainingsplan entfernen'
+                 : btn.getAttribute('data-add-label') || 'Zum Trainingsplan hinzufügen');
+      }
+
+      function syncAllCards() {
+        var plan = readPlan();
+        document.querySelectorAll('.exercise-card').forEach(function (card) {
+          var btn = card.querySelector('.exercise-plan-btn');
+          if (!btn) return;
+          var id = btn.getAttribute('data-id');
+          updateBtnState(card, plan.indexOf(id) !== -1);
+        });
+      }
+
+      // Initial state
+      syncAllCards();
+
+      // Keep cards in sync when the plan changes elsewhere (e.g. lightbox button)
+      window.addEventListener('plan-changed', syncAllCards);
+
+      // Button click handling (delegated)
+      document.addEventListener('click', function (e) {
+        var btn = e.target.closest('.exercise-plan-btn');
+        if (!btn) return;
+        e.stopPropagation();
+        e.preventDefault();
+        var id = btn.getAttribute('data-id');
+        var card = btn.closest('.exercise-card');
+        var current = readPlan();
+        var idx = current.indexOf(id);
+        var nowIn;
+        if (idx === -1) {
+          current.push(id);
+          nowIn = true;
+        } else {
+          current.splice(idx, 1);
+          nowIn = false;
+        }
+        writePlan(current);
+        if (card) updateBtnState(card, nowIn);
+        window.dispatchEvent(new CustomEvent('plan-changed'));
+        if (window.updatePlanBadge) window.updatePlanBadge();
       });
     })();
   </script>
