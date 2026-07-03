@@ -40,12 +40,7 @@ collections:
       - { label: 'Übungsbild', name: 'image', widget: 'image', required: true, hint: 'Foto oder Zeichnung der Übung. Wird auf der Übersicht angezeigt.' }
       - { label: 'Reihenfolge', name: 'order', widget: 'number', default: 0, required: false, value_type: 'int', hint: 'Kleinere Zahl = weiter vorne. Leer lassen ist ok — Übungen werden dann alphabetisch sortiert.' }
       - { label: 'Beschreibung (optional)', name: 'description', widget: 'text', required: false, hint: 'Was trainiert diese Übung? Wie wird sie durchgeführt? Leer lassen ist ok.' }
-      - label: 'Video-Link (optional)'
-        name: 'videoUrl'
-        widget: 'string'
-        required: false
-        pattern: ['^https?://.+', 'Muss mit http:// oder https:// beginnen']
-        hint: 'YouTube- oder Vimeo-Link. Beispiel: https://youtube.com/watch?v=...'
+      - { label: 'Video-Link (optional)', name: 'videoUrl', widget: 'string', required: false, hint: 'YouTube- oder Vimeo-Link (mit http:// oder https:// beginnen). Beispiel: https://youtube.com/watch?v=...' }
       - { label: 'Dauer (optional)', name: 'duration', widget: 'string', required: false, hint: 'Zum Beispiel: „10 Minuten" oder „15 min".' }
       - { label: 'Spielerzahl (optional)', name: 'playerCount', widget: 'string', required: false, hint: 'Zum Beispiel: „8 Spieler" oder „4 vs 4".' }
 
@@ -71,12 +66,7 @@ collections:
       - { label: 'Übungsbild', name: 'image', widget: 'image', required: true, hint: 'Foto oder Zeichnung der Übung. Wird auf der Übersicht angezeigt.' }
       - { label: 'Reihenfolge', name: 'order', widget: 'number', default: 0, required: false, value_type: 'int', hint: 'Kleinere Zahl = weiter vorne. Leer lassen ist ok — Übungen werden dann alphabetisch sortiert.' }
       - { label: 'Beschreibung (optional)', name: 'description', widget: 'text', required: false, hint: 'Was trainiert diese Übung? Wie wird sie durchgeführt? Leer lassen ist ok.' }
-      - label: 'Video-Link (optional)'
-        name: 'videoUrl'
-        widget: 'string'
-        required: false
-        pattern: ['^https?://.+', 'Muss mit http:// oder https:// beginnen']
-        hint: 'YouTube- oder Vimeo-Link. Beispiel: https://youtube.com/watch?v=...'
+      - { label: 'Video-Link (optional)', name: 'videoUrl', widget: 'string', required: false, hint: 'YouTube- oder Vimeo-Link (mit http:// oder https:// beginnen). Beispiel: https://youtube.com/watch?v=...' }
       - { label: 'Dauer (optional)', name: 'duration', widget: 'string', required: false, hint: 'Zum Beispiel: „10 Minuten" oder „15 min".' }
       - { label: 'Spielerzahl (optional)', name: 'playerCount', widget: 'string', required: false, hint: 'Zum Beispiel: „8 Spieler" oder „4 vs 4".' }
 
@@ -102,12 +92,7 @@ collections:
       - { label: 'Übungsbild', name: 'image', widget: 'image', required: true, hint: 'Foto oder Zeichnung der Übung. Wird auf der Übersicht angezeigt.' }
       - { label: 'Reihenfolge', name: 'order', widget: 'number', default: 0, required: false, value_type: 'int', hint: 'Kleinere Zahl = weiter vorne. Leer lassen ist ok — Übungen werden dann alphabetisch sortiert.' }
       - { label: 'Beschreibung (optional)', name: 'description', widget: 'text', required: false, hint: 'Was trainiert diese Übung? Wie wird sie durchgeführt? Leer lassen ist ok.' }
-      - label: 'Video-Link (optional)'
-        name: 'videoUrl'
-        widget: 'string'
-        required: false
-        pattern: ['^https?://.+', 'Muss mit http:// oder https:// beginnen']
-        hint: 'YouTube- oder Vimeo-Link. Beispiel: https://youtube.com/watch?v=...'
+      - { label: 'Video-Link (optional)', name: 'videoUrl', widget: 'string', required: false, hint: 'YouTube- oder Vimeo-Link (mit http:// oder https:// beginnen). Beispiel: https://youtube.com/watch?v=...' }
       - { label: 'Dauer (optional)', name: 'duration', widget: 'string', required: false, hint: 'Zum Beispiel: „10 Minuten" oder „15 min".' }
       - { label: 'Spielerzahl (optional)', name: 'playerCount', widget: 'string', required: false, hint: 'Zum Beispiel: „8 Spieler" oder „4 vs 4".' }
 
@@ -133,12 +118,7 @@ collections:
       - { label: 'Übungsbild', name: 'image', widget: 'image', required: true, hint: 'Foto oder Zeichnung der Übung. Wird auf der Übersicht angezeigt.' }
       - { label: 'Reihenfolge', name: 'order', widget: 'number', default: 0, required: false, value_type: 'int', hint: 'Kleinere Zahl = weiter vorne. Leer lassen ist ok — Übungen werden dann alphabetisch sortiert.' }
       - { label: 'Beschreibung (optional)', name: 'description', widget: 'text', required: false, hint: 'Was trainiert diese Übung? Wie wird sie durchgeführt? Leer lassen ist ok.' }
-      - label: 'Video-Link (optional)'
-        name: 'videoUrl'
-        widget: 'string'
-        required: false
-        pattern: ['^https?://.+', 'Muss mit http:// oder https:// beginnen']
-        hint: 'YouTube- oder Vimeo-Link. Beispiel: https://youtube.com/watch?v=...'
+      - { label: 'Video-Link (optional)', name: 'videoUrl', widget: 'string', required: false, hint: 'YouTube- oder Vimeo-Link (mit http:// oder https:// beginnen). Beispiel: https://youtube.com/watch?v=...' }
       - { label: 'Dauer (optional)', name: 'duration', widget: 'string', required: false, hint: 'Zum Beispiel: „10 Minuten" oder „15 min".' }
       - { label: 'Spielerzahl (optional)', name: 'playerCount', widget: 'string', required: false, hint: 'Zum Beispiel: „8 Spieler" oder „4 vs 4".' }
 
@@ -164,12 +144,7 @@ collections:
       - { label: 'Übungsbild', name: 'image', widget: 'image', required: true, hint: 'Foto oder Zeichnung der Übung. Wird auf der Übersicht angezeigt.' }
       - { label: 'Reihenfolge', name: 'order', widget: 'number', default: 0, required: false, value_type: 'int', hint: 'Kleinere Zahl = weiter vorne. Leer lassen ist ok — Übungen werden dann alphabetisch sortiert.' }
       - { label: 'Beschreibung (optional)', name: 'description', widget: 'text', required: false, hint: 'Was trainiert diese Übung? Wie wird sie durchgeführt? Leer lassen ist ok.' }
-      - label: 'Video-Link (optional)'
-        name: 'videoUrl'
-        widget: 'string'
-        required: false
-        pattern: ['^https?://.+', 'Muss mit http:// oder https:// beginnen']
-        hint: 'YouTube- oder Vimeo-Link. Beispiel: https://youtube.com/watch?v=...'
+      - { label: 'Video-Link (optional)', name: 'videoUrl', widget: 'string', required: false, hint: 'YouTube- oder Vimeo-Link (mit http:// oder https:// beginnen). Beispiel: https://youtube.com/watch?v=...' }
       - { label: 'Dauer (optional)', name: 'duration', widget: 'string', required: false, hint: 'Zum Beispiel: „10 Minuten" oder „15 min".' }
       - { label: 'Spielerzahl (optional)', name: 'playerCount', widget: 'string', required: false, hint: 'Zum Beispiel: „8 Spieler" oder „4 vs 4".' }
 
@@ -195,11 +170,6 @@ collections:
       - { label: 'Übungsbild', name: 'image', widget: 'image', required: true, hint: 'Foto oder Zeichnung der Übung. Wird auf der Übersicht angezeigt.' }
       - { label: 'Reihenfolge', name: 'order', widget: 'number', default: 0, required: false, value_type: 'int', hint: 'Kleinere Zahl = weiter vorne. Leer lassen ist ok — Übungen werden dann alphabetisch sortiert.' }
       - { label: 'Beschreibung (optional)', name: 'description', widget: 'text', required: false, hint: 'Was trainiert diese Übung? Wie wird sie durchgeführt? Leer lassen ist ok.' }
-      - label: 'Video-Link (optional)'
-        name: 'videoUrl'
-        widget: 'string'
-        required: false
-        pattern: ['^https?://.+', 'Muss mit http:// oder https:// beginnen']
-        hint: 'YouTube- oder Vimeo-Link. Beispiel: https://youtube.com/watch?v=...'
+      - { label: 'Video-Link (optional)', name: 'videoUrl', widget: 'string', required: false, hint: 'YouTube- oder Vimeo-Link (mit http:// oder https:// beginnen). Beispiel: https://youtube.com/watch?v=...' }
       - { label: 'Dauer (optional)', name: 'duration', widget: 'string', required: false, hint: 'Zum Beispiel: „10 Minuten" oder „15 min".' }
       - { label: 'Spielerzahl (optional)', name: 'playerCount', widget: 'string', required: false, hint: 'Zum Beispiel: „8 Spieler" oder „4 vs 4".' }

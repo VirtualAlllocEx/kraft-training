@@ -46,7 +46,19 @@
   [headers.values]
     Cache-Control = "public, max-age=86400"
 
-# Security headers
+# Admin panel (Decap CMS) — requires 'unsafe-eval' and access to GitHub API
+# via git-gateway. This block MUST come before the global "/*" headers block
+# so it wins the path match.
+[[headers]]
+  for = "/admin/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://identity.netlify.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://api.netlify.com https://identity.netlify.com https://*.netlify.com https://*.netlify.app https://api.github.com; frame-src 'self'"
+
+# Security headers (public site)
 [[headers]]
   for = "/*"
   [headers.values]
