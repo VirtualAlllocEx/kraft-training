@@ -10,58 +10,77 @@ import Base from '../layouts/Base.astro';
     </p>
 
     <div class="hilfe-note">
-      <strong>Hinweis:</strong> Der Admin-Bereich ist auf Deutsch eingestellt. Einzelne
-      Meldungen — vor allem Fehlermeldungen beim Einloggen — können trotzdem auf
-      Englisch erscheinen, weil das Login-Modul von Netlify nicht vollständig
-      übersetzt ist. Das ist normal und kein Fehler.
+      <strong>Hinweis:</strong> Der Admin-Bereich ist auf Deutsch eingestellt. Nur das
+      Login-Fenster (Netlify Identity) gibt es nicht auf Deutsch — dort sind Knöpfe wie
+      <strong>„Log in“</strong> oder <strong>„Forgot password?“</strong> auf Englisch.
+      Das ist normal und kein Fehler.
     </div>
 
     <h2>Einloggen</h2>
     <ol>
       <li>Öffne im Browser: <a href="/admin/" class="link-bold">https://kraft-training.netlify.app/admin/</a></li>
       <li>Klicke auf <strong>„Mit Netlify Identity einloggen“</strong>.</li>
-      <li>E-Mail-Adresse und Passwort eingeben → <strong>Login</strong>.</li>
+      <li>E-Mail-Adresse und Passwort eingeben → auf <strong>„Log in“</strong> klicken (das Login-Fenster ist auf Englisch).</li>
     </ol>
     <p>Nach dem Einloggen siehst du links die 6 Kategorien: Aufwärmen, Passspiel, Torabschluss, Spielform, Halle, Kondition.</p>
+
+    <h2>So funktioniert das Veröffentlichen (wichtig!)</h2>
+    <p>
+      Jede Übung durchläuft drei Stufen, bevor sie online geht. Oben in der Leiste gibt es
+      dafür den Punkt <strong>„Arbeitsablauf“</strong> — dort siehst du ein Brett mit drei Spalten:
+    </p>
+    <ul>
+      <li><strong>Entwurf</strong> — daran wird noch gearbeitet. Nichts davon ist öffentlich.</li>
+      <li><strong>In Prüfung</strong> — bedeutet: „fertig, aber bitte noch einmal drüberschauen“. Diese Spalte kannst du auch einfach überspringen.</li>
+      <li><strong>Abgeschlossen</strong> — bereit zum Veröffentlichen. <strong>Nur</strong> Übungen in dieser Spalte lassen sich veröffentlichen.</li>
+    </ul>
+    <div class="hilfe-note">
+      <strong>Merke:</strong> Eine Übung ist erst online, wenn sie den Status
+      <strong>„Abgeschlossen“</strong> hat <strong>und</strong> du danach auf
+      <strong>„Jetzt veröffentlichen“</strong> geklickt hast. Speichern allein reicht nicht.
+    </div>
 
     <h2>Neue Übung hinzufügen</h2>
     <ol>
       <li>Links auf die gewünschte <strong>Kategorie</strong> klicken (z.B. „Aufwärmen“).</li>
-      <li>Oben rechts auf <strong>„Neue Aufwärm-Übung“</strong> klicken.</li>
+      <li>Oben auf den Knopf <strong>„Neue(r/s) Aufwärm-Übung“</strong> klicken. (Das „(r/s)“ im Namen ist eine Eigenheit des Programms — einfach ignorieren.)</li>
       <li>
         Formular ausfüllen:
         <ul>
           <li><strong>Name der Übung</strong> — z.B. „Passspiel im Quadrat“ <em>(Pflicht)</em></li>
-          <li><strong>Übungsbild</strong> — Bild vom Computer hochladen, maximal 1 MB <em>(Pflicht)</em></li>
+          <li><strong>Übungsbild</strong> — Bild vom Computer hochladen, maximal 1 MB <em>(Pflicht — genaue Schritte siehe Abschnitt „Bilder hochladen“)</em></li>
           <li><strong>Reihenfolge</strong> — Zahl, kleiner = weiter vorne <em>(optional, leer lassen = Sortierung nach Name)</em></li>
-          <li><strong>Beschreibung</strong> — was wird trainiert, wie läuft die Übung <em>(optional)</em></li>
-          <li><strong>Video-Link</strong> — YouTube- oder Vimeo-URL, muss mit <code>http://</code> oder <code>https://</code> beginnen <em>(optional)</em></li>
-          <li><strong>Dauer</strong> — z.B. „10 Minuten“ <em>(optional)</em></li>
-          <li><strong>Spielerzahl</strong> — z.B. „8 Spieler“ oder „4 vs 4“ <em>(optional)</em></li>
+          <li><strong>Beschreibung (optional)</strong> — was wird trainiert, wie läuft die Übung</li>
+          <li><strong>Video-Link (optional)</strong> — YouTube- oder Vimeo-URL, muss mit <code>http://</code> oder <code>https://</code> beginnen</li>
+          <li><strong>Dauer (optional)</strong> — z.B. „10 Minuten“</li>
+          <li><strong>Spielerzahl (optional)</strong> — z.B. „8 Spieler“ oder „4 vs 4“</li>
         </ul>
       </li>
-      <li>Oben rechts auf <strong>„Speichern“</strong> klicken.</li>
+      <li>Oben auf <strong>„Speichern“</strong> klicken.</li>
     </ol>
-    <p>Die Übung ist jetzt ein <strong>Entwurf</strong>. Sie ist noch nicht online.</p>
+    <p>Die Übung hat jetzt den Status <strong>„Entwurf“</strong> und ist <strong>noch nicht online</strong>. Wie sie online kommt, steht im nächsten Abschnitt.</p>
 
-    <h2>Entwurf veröffentlichen</h2>
-    <p>Damit eine gespeicherte Übung wirklich auf der Website erscheint, gibt es zwei Wege:</p>
+    <h2>Übung veröffentlichen — Schritt für Schritt</h2>
 
     <h3>Der schnelle Weg (direkt im Editor)</h3>
-    <p>
-      Oben in der Leiste des Editors gibt es das Menü
-      <strong>„Veröffentlichen“ → „Jetzt veröffentlichen“</strong>. Damit ist die Übung sofort
-      freigegeben — du musst nicht extra zum Workflow-Board wechseln.
-    </p>
-
-    <h3>Der Weg über das Workflow-Board</h3>
     <ol>
-      <li>Links oben auf <strong>„Workflow“</strong> klicken.</li>
-      <li>Deine Übung erscheint in der Spalte <strong>„Entwürfe“</strong>.</li>
-      <li>Ziehe die Karte nach rechts in die Spalte „Bereit“ — oder klicke in der Übung auf <strong>„Status setzen: Bereit“</strong> (je nach Version heißt der Punkt auch „Zur Freigabe“).</li>
-      <li>Dann auf <strong>„Jetzt veröffentlichen“</strong> klicken.</li>
+      <li><strong>„Speichern“</strong> klicken (falls noch nicht geschehen).</li>
+      <li>Oben in der Leiste das <strong>Status-Menü</strong> öffnen (es zeigt z.B. „Status: Entwurf“) und <strong>„Abgeschlossen“</strong> auswählen.</li>
+      <li>Daneben das Menü <strong>„Veröffentlichen“</strong> öffnen und <strong>„Jetzt veröffentlichen“</strong> anklicken.</li>
     </ol>
-    <p>Nach ca. <strong>1-2 Minuten</strong> ist die Übung auf <strong>kraft-training.netlify.app</strong> live.</p>
+    <div class="hilfe-warn">
+      <strong>Wichtig:</strong> „Jetzt veröffentlichen“ funktioniert <strong>nur</strong>, wenn der
+      Status auf <strong>„Abgeschlossen“</strong> steht. Steht er noch auf „Entwurf“ oder
+      „In Prüfung“, erscheint nur eine Fehlermeldung und nichts passiert.
+    </div>
+
+    <h3>Der Weg über das Arbeitsablauf-Brett</h3>
+    <ol>
+      <li>Oben auf <strong>„Arbeitsablauf“</strong> klicken.</li>
+      <li>Die Karte deiner Übung erscheint in der Spalte <strong>„Entwurf“</strong>. Ziehe sie nach rechts in die Spalte <strong>„Abgeschlossen“</strong>.</li>
+      <li>Auf der Karte auf <strong>„Veröffentliche neuen Beitrag“</strong> klicken. (Bei einer geänderten, schon bestehenden Übung heißt der Knopf <strong>„Veröffentliche Änderungen“</strong>.)</li>
+    </ol>
+    <p>Nach ca. <strong>1–2 Minuten</strong> ist die Übung auf <strong>kraft-training.netlify.app</strong> live.</p>
 
     <div class="hilfe-note">
       <strong>Warum dieser Umweg?</strong> So kannst du in Ruhe an einer Übung arbeiten,
@@ -73,31 +92,110 @@ import Base from '../layouts/Base.astro';
     <ol>
       <li>Kategorie öffnen → Übung in der Liste anklicken.</li>
       <li>Änderungen machen → <strong>„Speichern“</strong>.</li>
-      <li>Danach wieder veröffentlichen: entweder direkt im Editor über <strong>„Veröffentlichen“ → „Jetzt veröffentlichen“</strong> oder im <strong>Workflow</strong> über „Bereit“ → „Jetzt veröffentlichen“.</li>
+      <li>Deine Änderung ist jetzt wieder ein <strong>Entwurf</strong> — auf der Website bleibt so lange die alte Version zu sehen. Zum Veröffentlichen wie oben: <strong>Status auf „Abgeschlossen“</strong> setzen und <strong>„Jetzt veröffentlichen“</strong> klicken (oder im Arbeitsablauf auf der Karte <strong>„Veröffentliche Änderungen“</strong>).</li>
     </ol>
+
+    <h2>Tipp: Übung duplizieren</h2>
+    <p>
+      Wenn du eine ähnliche Übung anlegen willst, musst du nicht bei null anfangen:
+      Die bestehende Übung öffnen und oben in der Leiste auf <strong>„Duplizieren“</strong>
+      klicken. Du bekommst eine Kopie mit allen Feldern vorausgefüllt — nur noch Name und
+      Details anpassen, speichern und wie gewohnt veröffentlichen.
+    </p>
 
     <h2>Übung löschen</h2>
     <ol>
       <li>Kategorie öffnen → Übung anklicken.</li>
-      <li>Oben auf <strong>„Eintrag löschen“</strong> klicken.</li>
-      <li>Bestätigen. Nach 1-2 Minuten ist sie von der Website entfernt.</li>
+      <li>Oben in der Leiste auf <strong>„Lösche veröffentlichten Beitrag“</strong> klicken.</li>
+      <li>Bestätigen. Nach 1–2 Minuten ist die Übung von der Website entfernt.</li>
     </ol>
+    <p>Je nach Zustand der Übung heißt der Knopf etwas anders:</p>
+    <ul>
+      <li><strong>„Lösche veröffentlichten Beitrag“</strong> — entfernt eine Übung, die online ist.</li>
+      <li><strong>„Lösche unveröffentlichten Beitrag“</strong> — entfernt eine neue Übung, die noch nie online war.</li>
+      <li><strong>„Unveröffentlichte Änderungen verwerfen“</strong> — verwirft nur deine noch nicht veröffentlichten Änderungen; die Version auf der Website bleibt unverändert.</li>
+    </ul>
+    <p>Im <strong>Arbeitsablauf</strong>-Brett gibt es auf den Karten dafür die Knöpfe <strong>„Lösche neuen Beitrag“</strong> bzw. <strong>„Änderungen verwerfen“</strong>.</p>
 
     <div class="hilfe-warn">
-      <strong>⚠ Achtung:</strong> Gelöschte Übungen kann nur der Entwickler
-      wiederherstellen — im Zweifel lieber melden statt löschen.
+      <strong>⚠ Achtung:</strong> Gelöschte Übungen kann nur der Entwickler wiederherstellen —
+      im Zweifel lieber melden statt löschen. Und: Jede Übung hat eine eigene Seite, deren
+      Link man teilen kann (siehe unten). Wenn du eine Übung löschst oder umbenennst,
+      funktionieren bereits verschickte Links auf diese Übung nicht mehr.
     </div>
 
-    <h2>Bilder verwalten</h2>
+    <h2>Bilder hochladen</h2>
+    <p>Beim Feld <strong>„Übungsbild“</strong>:</p>
+    <ol>
+      <li>Auf <strong>„Wähle ein Bild“</strong> klicken — die Bildergalerie öffnet sich.</li>
+      <li>Oben auf <strong>„Hochladen“</strong> klicken und das Bild vom Computer auswählen.</li>
+      <li><strong>Wichtig:</strong> Danach unten auf <strong>„Ausgewähltes Element verwenden“</strong> klicken. Erst damit landet das Bild im Formular — nur Hochladen reicht nicht!</li>
+    </ol>
+    <p>Weitere Hinweise:</p>
     <ul>
-      <li>Beim Feld <strong>„Übungsbild“</strong> auf <strong>„Bild auswählen“</strong> klicken.</li>
-      <li>Oben auf <strong>„Hochladen“</strong> → Bild vom Computer wählen.</li>
       <li>Optimal: <strong>quadratisch oder 4:3</strong>, JPG oder PNG.</li>
-      <li>Maximale Dateigröße: <strong>1 MB</strong> — größere Bilder werden abgelehnt. Bei Bedarf das Foto vorher verkleinern (z.B. per Handy-Screenshot oder einem Online-Verkleinerer).</li>
-      <li>Bereits hochgeladene Bilder erscheinen in der Bildergalerie und können wiederverwendet werden.</li>
+      <li>Maximale Dateigröße: <strong>1 MB</strong>. Bei größeren Bildern erscheint die Meldung <strong>„Datei zu groß. Erlaubt sind nur Dateien bis 1048 kB.“</strong> — dann das Foto vorher verkleinern (z.B. per Handy-Screenshot oder einem Online-Verkleinerer).</li>
+      <li>Bereits hochgeladene Bilder erscheinen in der Bildergalerie und können wiederverwendet werden: Bild anklicken → <strong>„Ausgewähltes Element verwenden“</strong>.</li>
+    </ul>
+
+    <div class="hilfe-warn">
+      <strong>⚠ Achtung:</strong> Uploads über den Menüpunkt <strong>„Medien“</strong>
+      (oben im Admin) umgehen die 1-MB-Prüfung. Bitte trotzdem darauf achten,
+      dass die Bilder unter 1 MB bleiben — sonst wird die Website langsam.
+    </div>
+
+    <h2>Abmelden</h2>
+    <p>
+      Oben rechts auf deine E-Mail-Adresse (bzw. das runde Symbol) klicken und
+      <strong>„Abmelden“</strong> wählen.
+    </p>
+
+    <h2>Wenn eine Übung nach dem Veröffentlichen nicht erscheint</h2>
+    <p>
+      Nach „Jetzt veröffentlichen“ wird die Website im Hintergrund neu gebaut — das dauert
+      normalerweise <strong>1–2 Minuten</strong>. Wenn die Übung danach nicht auftaucht:
+    </p>
+    <ol>
+      <li>Seite komplett neu laden: <strong>Windows: Strg+Umschalt+R</strong>, <strong>Mac: Cmd+Shift+R</strong>.</li>
+      <li>Hilft das nicht: den Website-Cache im Browser leeren (in den Browser-Einstellungen).</li>
+      <li>Immer noch nichts? Dann ist vermutlich der automatische Neuaufbau der Website fehlgeschlagen (ein sogenannter Build-Fehler). Das kannst du selbst nicht beheben — bitte kurz an <a href="mailto:daniel@redops.at" class="link-bold">daniel@redops.at</a> melden, am besten mit dem Namen der Übung.</li>
+    </ol>
+
+    <h2>Die öffentliche Website — gut zu wissen</h2>
+    <ul>
+      <li><strong>Übungs-Seiten zum Teilen:</strong> Jede Übung hat eine eigene Detailseite unter <code>kraft-training.netlify.app/uebung/…</code> — z.B. über „Details ansehen“ erreichbar. Den Link kannst du per WhatsApp oder E-Mail an andere Trainer schicken. Aber Achtung: Wird die Übung gelöscht oder umbenannt, führt der alte Link ins Leere.</li>
+      <li><strong>Trainingsplan:</strong> Auf der Website lassen sich Übungen für ein Training auswählen. Oben rechts erscheint dann ein Merkzettel-Symbol (<strong>📋</strong>) mit der Anzahl der ausgewählten Übungen. Ein Klick darauf führt zur Seite <a href="/plan/" class="link-bold">/plan/</a>, wo man die Auswahl ansehen, drucken und teilen kann.</li>
     </ul>
 
     <h2>Häufige Fragen</h2>
+
+    <h3>Ich klicke „Jetzt veröffentlichen“ und es passiert nur eine Meldung.</h3>
+    <p>
+      Der Status der Übung steht noch auf „Entwurf“ oder „In Prüfung“. Zuerst oben im
+      Status-Menü <strong>„Abgeschlossen“</strong> auswählen — dann funktioniert
+      „Jetzt veröffentlichen“.
+    </p>
+
+    <h3>Nach dem Bild-Upload passiert nichts.</h3>
+    <p>
+      Nach dem Hochladen musst du in der Bildergalerie noch auf
+      <strong>„Ausgewähltes Element verwenden“</strong> klicken — erst dann wird das Bild
+      in das Formular übernommen.
+    </p>
+
+    <h3>Ich sehe meine Änderung nicht auf der Website, obwohl „veröffentlicht“ angezeigt wurde.</h3>
+    <p>
+      Seite mit <strong>Strg+Umschalt+R</strong> neu laden (<strong>Cmd+Shift+R</strong> am Mac).
+      Falls das nichts hilft: den Website-Cache im Browser leeren (Browser-Einstellungen).
+      Falls immer noch nichts: an <a href="mailto:daniel@redops.at" class="link-bold">daniel@redops.at</a>
+      melden — das kann ein Build-Fehler sein.
+    </p>
+
+    <h3>Der „Passwort vergessen“-Link ist auf Englisch.</h3>
+    <p>
+      Richtig — er heißt <strong>„Forgot password?“</strong>. Das Login-Fenster kommt von
+      Netlify Identity und lässt sich nicht auf Deutsch umstellen. Die Funktion ist dieselbe.
+    </p>
 
     <h3>Wo ist der „Neue Kategorie“-Knopf?</h3>
     <p>
@@ -107,31 +205,27 @@ import Base from '../layouts/Base.astro';
 
     <h3>Ich habe was falsch gemacht — wie kann ich rückgängig?</h3>
     <p>
-      Solange du noch nicht auf <strong>„Jetzt veröffentlichen“</strong> geklickt hast: den
-      Entwurf einfach im <strong>Workflow</strong> löschen. Nach dem Veröffentlichen: die
-      Übung im Admin öffnen, korrigieren, wieder speichern und veröffentlichen.
-    </p>
-
-    <h3>Wie lange dauert es bis die Änderung sichtbar ist?</h3>
-    <p>
-      Nach „Jetzt veröffentlichen“ ca. <strong>1-2 Minuten</strong>. Wenn du nichts siehst:
-      Seite im Browser komplett neu laden — unter <strong>Windows: Strg+Umschalt+R</strong>
-      (Ctrl+Shift+R), am <strong>Mac: Cmd+Shift+R</strong>.
+      Solange noch nichts veröffentlicht ist: Bei einer neuen Übung im Editor
+      <strong>„Lösche unveröffentlichten Beitrag“</strong> wählen, bei Änderungen an einer
+      bestehenden Übung <strong>„Unveröffentlichte Änderungen verwerfen“</strong>
+      (im Arbeitsablauf heißen die Knöpfe „Lösche neuen Beitrag“ bzw.
+      „Änderungen verwerfen“). Nach dem Veröffentlichen: die Übung öffnen, korrigieren,
+      speichern und wieder veröffentlichen.
     </p>
 
     <h3>Ich sehe die Änderung nicht auf dem Handy.</h3>
-    <p>Der Browser cached alte Versionen. Neu laden oder App-Cache leeren.</p>
+    <p>Der Browser speichert alte Versionen zwischen. Seite neu laden oder den Browser-Cache leeren.</p>
 
     <h3>Warum ist eine Meldung plötzlich auf Englisch?</h3>
     <p>
-      Das Login-Modul (Netlify Identity) ist nicht vollständig übersetzt.
-      Englische Meldungen dort sind normal — die Funktion ist dieselbe.
+      Das Login-Modul (Netlify Identity) gibt es nicht auf Deutsch. Englische Meldungen
+      dort sind normal — die Funktion ist dieselbe.
     </p>
 
     <h2>Passwort vergessen?</h2>
     <p>
-      Auf der Login-Seite auf <strong>„Passwort vergessen?“</strong> klicken.
-      Netlify schickt einen Reset-Link an deine E-Mail-Adresse.
+      Auf der Login-Seite auf <strong>„Forgot password?“</strong> klicken (der Link ist auf
+      Englisch). Netlify schickt einen Reset-Link an deine E-Mail-Adresse.
     </p>
 
     <h2>Bei Problemen</h2>

@@ -70,6 +70,10 @@ const canonical = new URL(`/uebung/${exercise.id}/`, Astro.site).href;
         </div>
 
         <div class="exercise-detail-share" id="shareStatus" role="status" aria-live="polite"></div>
+
+        <p class="exercise-detail-hint">
+          Hinweis: Der Link zu dieser Seite ändert sich, wenn die Übung umbenannt wird.
+        </p>
       </div>
     </article>
   </div>
@@ -131,6 +135,28 @@ const canonical = new URL(`/uebung/${exercise.id}/`, Astro.site).href;
 
       if (printBtn) {
         printBtn.addEventListener('click', function() { window.print(); });
+      }
+
+      // Show a placeholder if the exercise image fails to load
+      var detailImg = document.querySelector('.exercise-detail-image img');
+      if (detailImg) {
+        var showImageFallback = function() {
+          if (detailImg.dataset.broken === 'true') return;
+          detailImg.dataset.broken = 'true';
+          detailImg.style.display = 'none';
+          var placeholder = document.createElement('div');
+          placeholder.setAttribute('role', 'img');
+          placeholder.setAttribute('aria-label', detailImg.alt + ' — Bild nicht verfügbar');
+          placeholder.style.cssText = 'width:100%;aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;background:#2a2a2a;color:#c0c0c0;font-size:14px;';
+          placeholder.textContent = 'Bild nicht verfügbar';
+          detailImg.parentNode.insertBefore(placeholder, detailImg);
+        };
+        if (detailImg.complete && detailImg.naturalWidth === 0) {
+          // Image already failed before this script ran (loading="eager")
+          showImageFallback();
+        } else {
+          detailImg.addEventListener('error', showImageFallback);
+        }
       }
     })();
   </script>
@@ -196,6 +222,12 @@ const canonical = new URL(`/uebung/${exercise.id}/`, Astro.site).href;
     letter-spacing: 0.5px;
     min-height: 20px;
   }
+  .exercise-detail-hint {
+    margin-top: 24px;
+    color: var(--text-dim);
+    font-size: 12px;
+    letter-spacing: 0.3px;
+  }
 
   @media (max-width: 800px) {
     .exercise-detail {
@@ -207,6 +239,7 @@ const canonical = new URL(`/uebung/${exercise.id}/`, Astro.site).href;
   @media print {
     .exercise-detail-actions,
     .exercise-detail-share,
+    .exercise-detail-hint,
     .back-link {
       display: none !important;
     }

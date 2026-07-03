@@ -87,7 +87,6 @@ const categoryName = categoryMap[slug!] || slug;
             class="exercise-card"
             data-id={exercise.id}
             data-src={exercise.data.image}
-            data-id={exercise.id}
             data-title={exercise.data.title}
             data-description={exercise.data.description ?? ''}
             data-video={exercise.data.videoUrl ?? ''}
@@ -147,8 +146,7 @@ const categoryName = categoryMap[slug!] || slug;
           description: cards[i].getAttribute('data-description') || '',
           video: cards[i].getAttribute('data-video') || '',
           duration: cards[i].getAttribute('data-duration') || '',
-          players: cards[i].getAttribute('data-players') || '',
-          id: cards[i].getAttribute('data-id') || ''
+          players: cards[i].getAttribute('data-players') || ''
         });
       }
 

@@ -1383,6 +1383,28 @@ html {
   }
 }
 
+/* --- Logout button (only shown with an active Netlify Identity session) --- */
+.logout-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  min-height: 32px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-family: Inter, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .logout-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+}
+
 /* --- Plan button in lightbox meta --- */
 .lightbox-actions {
   display: flex;
@@ -1430,10 +1452,11 @@ html {
   outline-offset: 2px;
 }
 
-/* Print: hide the plan button and badge */
+/* Print: hide the plan button, badge and logout button */
 @media print {
   .exercise-plan-btn,
-  .plan-badge {
+  .plan-badge,
+  .logout-btn {
     display: none !important;
   }
 }

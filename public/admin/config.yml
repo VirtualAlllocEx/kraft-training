@@ -1,8 +1,21 @@
 locale: 'de'
 
+# Öffentliche Site-URL: zeigt im CMS einen „Website ansehen"-Link, damit
+# schnell geprüft werden kann, ob eine Veröffentlichung angekommen ist.
+site_url: 'https://kraft-training.netlify.app'
+display_url: 'https://kraft-training.netlify.app'
+
 # Editorial workflow: jede Änderung ist zunächst ein Entwurf und wird erst
 # nach Klick auf "Veröffentlichen" live. Verhindert versehentliches Publizieren.
 publish_mode: editorial_workflow
+
+# Dateinamen (Slugs) ASCII-sicher machen: „Test Übung" → test-uebung.
+# Entspricht der Konvention des Migrationsskripts und verhindert
+# Git-Branch-Namen mit Nicht-ASCII-Zeichen im Editorial Workflow.
+slug:
+  encoding: 'ascii'
+  clean_accents: true
+  sanitize_replacement: '-'
 
 backend:
   name: git-gateway
@@ -14,6 +27,15 @@ backend:
     uploadMedia: 'Bild hochgeladen: {{path}}'
     deleteMedia: 'Bild gelöscht: {{path}}'
 
+# Hinweis/Limitation: Das 1-MB-Limit (max_file_size) kann in Decap CMS nur
+# pro Bild-Feld gesetzt werden (siehe media_library-Block bei jedem
+# 'image'-Widget unten). Ein globaler max_file_size-Block auf oberster Ebene
+# wird NICHT unterstützt — 'media_library: name: ...' ist nur für externe
+# Bibliotheken (Uploadcare/Cloudinary) gedacht; ein unbekannter Name wie
+# 'default' führt zu "Missing external media library" und macht das Admin
+# unbenutzbar (verifiziert gegen decap-cms-core, Stand 3.3.3).
+# Folge: Uploads über die globale Medienbibliothek („Medien" in der
+# Kopfleiste) umgehen die Größenprüfung — siehe Hinweis in ANLEITUNG.md.
 media_folder: 'public/images/uebungen'
 public_folder: '/images/uebungen'
 

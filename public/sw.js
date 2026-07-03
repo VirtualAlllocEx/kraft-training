@@ -1,6 +1,6 @@
 /* KRAFT.TRAINING service worker — offline support */
 
-const VERSION = 'v2';
+const VERSION = 'v3';
 const PREFIX = 'kraft-training-';
 const SHELL_CACHE = PREFIX + 'shell-' + VERSION;
 const PAGES_CACHE = PREFIX + 'pages-' + VERSION;
@@ -87,6 +87,33 @@ async function staleWhileRevalidate(request, cacheName, event) {
   return network;
 }
 
+/* Network-first: for navigations. Always tries the network (bypassing the
+   HTTP cache so a fresh publish is visible on the first reload), caches the
+   response for offline use, and only falls back to the cache — then the
+   offline shell — when the network is unavailable. Never caches redirected
+   responses (e.g. the 301 for /admin). */
+async function networkFirst(request, cacheName, event) {
+  const cache = await caches.open(cacheName);
+  try {
+    const response = await fetch(request, { cache: 'no-store' });
+    if (response && response.ok && !response.redirected) {
+      // Cache in the background for offline fallback
+      const responseToCache = response.clone();
+      if (event) {
+        event.waitUntil(cache.put(request, responseToCache).catch(() => {}));
+      } else {
+        cache.put(request, responseToCache).catch(() => {});
+      }
+    }
+    return response;
+  } catch (e) {
+    const cached = await cache.match(request);
+    if (cached) return cached;
+    const shellCache = await caches.open(SHELL_CACHE);
+    return (await shellCache.match('/offline/')) || (await shellCache.match('/')) || new Response('Offline', { status: 503 });
+  }
+}
+
 self.addEventListener('fetch', (event) => {
   const request = event.request;
   if (request.method !== 'GET') return;
@@ -117,16 +144,11 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  /* Navigations: stale-while-revalidate on PAGES_CACHE, offline fallback. */
+  /* Navigations: network-first on PAGES_CACHE, so fresh publishes are
+     visible on the first reload. Falls back to the cached page (then the
+     offline shell) when the network is unavailable. */
   if (request.mode === 'navigate' || request.destination === 'document') {
-    event.respondWith((async () => {
-      try {
-        return await staleWhileRevalidate(request, PAGES_CACHE, event);
-      } catch (e) {
-        const cache = await caches.open(SHELL_CACHE);
-        return (await cache.match('/offline/')) || (await cache.match('/')) || new Response('Offline', { status: 503 });
-      }
-    })());
+    event.respondWith(networkFirst(request, PAGES_CACHE, event));
     return;
   }
 

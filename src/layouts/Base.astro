@@ -54,15 +54,58 @@ const currentPath = Astro.url.pathname;
   <title>{title} | KRAFT.TRAINING</title>
   <script is:inline>{
     (function(){
+      // Netlify Identity: invite/recovery/confirmation links from e-mails
+      // land on the public site with a token in the URL hash. Load the
+      // widget on demand and wire up the right redirect per flow type.
       var h = window.location.hash;
-      if (h && (h.indexOf('invite_token') !== -1 || h.indexOf('recovery_token') !== -1 || h.indexOf('confirmation_token') !== -1)) {
-        var s = document.createElement('script');
-        // Note: no crossOrigin/SRI here — identity.netlify.com is a mutable
-        // service endpoint that does not send Access-Control-Allow-Origin,
-        // so a CORS-mode (crossorigin) fetch would be blocked by the browser.
-        s.src = 'https://identity.netlify.com/v1/netlify-identity-widget.js';
-        document.head.appendChild(s);
+      var flowType = null;
+      if (h) {
+        if (h.indexOf('invite_token') !== -1) flowType = 'invite';
+        else if (h.indexOf('recovery_token') !== -1) flowType = 'recovery';
+        else if (h.indexOf('confirmation_token') !== -1) flowType = 'confirmation';
       }
+
+      if (!flowType) return;
+
+      var s = document.createElement('script');
+      // Note: no crossOrigin/SRI here — identity.netlify.com is a mutable
+      // service endpoint that does not send Access-Control-Allow-Origin,
+      // so a CORS-mode (crossorigin) fetch would be blocked by the browser.
+      s.src = 'https://identity.netlify.com/v1/netlify-identity-widget.js';
+      s.async = true;
+      s.onload = function () {
+        if (!window.netlifyIdentity) return;
+        if (flowType === 'invite' || flowType === 'confirmation') {
+          // Login means the password was set (invite) or the e-mail was
+          // confirmed — safe to go straight to the CMS.
+          window.netlifyIdentity.on('login', function () {
+            document.location.href = '/admin/';
+          });
+        } else if (flowType === 'recovery') {
+          // For recovery, 'login' fires as soon as the token verifies —
+          // BEFORE the user has saved a new password. Redirecting on login
+          // would skip the reset form entirely. Instead wait until the
+          // widget closes (user finished or cancelled the reset), then
+          // redirect only if a session exists.
+          window.netlifyIdentity.on('close', function () {
+            if (window.netlifyIdentity.currentUser()) {
+              document.location.href = '/admin/';
+            }
+          });
+        }
+        // Open the widget (it processes the hash token automatically)
+        if (window.netlifyIdentity.open) {
+          window.netlifyIdentity.open();
+        }
+      };
+      s.onerror = function () {
+        // Widget failed to load (ad blocker, network) — show a hint
+        var msg = document.createElement('div');
+        msg.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#FF464B;color:#fff;padding:16px 24px;font-weight:700;z-index:10001;max-width:90vw;text-align:center;';
+        msg.innerHTML = 'Login-System konnte nicht geladen werden.<br>Bitte Ad-Blocker pr&uuml;fen oder direkt zu /admin/ gehen.';
+        (document.body || document.documentElement).appendChild(msg);
+      };
+      document.head.appendChild(s);
     })();
   }</script>
 </head>
@@ -82,6 +125,7 @@ const currentPath = Astro.url.pathname;
     <div class="header-inner">
       <a href="/" class="site-logo"><span>KRAFT.</span>TRAINING</a>
       <div class="header-actions">
+        <button type="button" class="logout-btn" id="logoutBtn" hidden aria-label="Abmelden">Abmelden</button>
         <a href="/plan/" class="plan-badge" id="planBadge" hidden aria-label="Trainingsplan">
           <span class="plan-badge-icon" aria-hidden="true">📋</span>
           <span class="plan-badge-count" id="planBadgeCount">0</span>
@@ -606,28 +650,34 @@ const currentPath = Astro.url.pathname;
         delete window._pendingLbImages;
       }
 
-      // Netlify Identity: only needed for invite/recovery/confirmation links
-      // that land on the public site. Poll for the widget script because it
-      // loads async and may not be ready when this runs.
-      var h = window.location.hash;
-      var isIdentityFlow = h && (h.indexOf('invite_token') !== -1 || h.indexOf('recovery_token') !== -1 || h.indexOf('confirmation_token') !== -1);
-      if (isIdentityFlow) {
-        var attempts = 0;
-        var poll = setInterval(function () {
-          attempts++;
-          if (window.netlifyIdentity) {
-            clearInterval(poll);
-            window.netlifyIdentity.on('login', function () {
-              document.location.href = '/admin/';
-            });
-            // Also trigger the widget to open
-            window.netlifyIdentity.on('init', function () {
-              window.netlifyIdentity.open();
-            });
-          } else if (attempts > 40) { // 4s max
-            clearInterval(poll);
+      // Note: the invite/recovery/confirmation token handling lives in the
+      // <head> inline script (script.onload wiring) — no polling needed here.
+
+      // --- Logout button: only visible when a Netlify Identity session exists ---
+      var hasSession = false;
+      try {
+        var rawUser = localStorage.getItem('gotrue.user');
+        if (rawUser) {
+          var parsedUser = JSON.parse(rawUser);
+          if (parsedUser && parsedUser.token && parsedUser.email) hasSession = true;
+        }
+      } catch (e) {}
+
+      var logoutBtn = document.getElementById('logoutBtn');
+      if (logoutBtn && hasSession) {
+        logoutBtn.hidden = false;
+        logoutBtn.addEventListener('click', function () {
+          if (!confirm('Wirklich abmelden?')) return;
+          if (window.netlifyIdentity && window.netlifyIdentity.logout) {
+            // Widget is loaded (identity flow) — use the proper logout
+            window.netlifyIdentity.logout();
+            setTimeout(function () { window.location.reload(); }, 500);
+          } else {
+            // No widget on the public site — just clear the stored token
+            try { localStorage.removeItem('gotrue.user'); } catch (e) {}
+            window.location.reload();
           }
-        }, 100);
+        });
       }
     })();
   </script>
@@ -642,11 +692,13 @@ const currentPath = Astro.url.pathname;
               if (!newWorker) return;
               newWorker.addEventListener('statechange', function () {
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  /* A new version is ready: show a toast prompting reload */
+                  /* A new version is ready: show a toast with a reload button */
                   var toast = document.createElement('div');
-                  toast.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#D4FE00;color:#131313;padding:12px 20px;border-radius:0;font-weight:700;z-index:10001;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,0.3);';
-                  toast.textContent = 'Neue Version verfügbar – jetzt aktualisieren';
-                  toast.addEventListener('click', function () { window.location.reload(); });
+                  toast.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#D4FE00;color:#131313;padding:12px 20px;border-radius:0;font-weight:700;z-index:10001;box-shadow:0 4px 20px rgba(0,0,0,0.3);';
+                  toast.innerHTML = 'Neue Version verfügbar &nbsp;<button style="background:#131313;color:#D4FE00;border:none;padding:6px 12px;margin-left:8px;font-weight:700;cursor:pointer;">Aktualisieren</button>';
+                  toast.querySelector('button').addEventListener('click', function () {
+                    window.location.reload();
+                  });
                   document.body.appendChild(toast);
                 }
               });

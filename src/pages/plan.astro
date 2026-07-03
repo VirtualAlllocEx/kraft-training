@@ -161,12 +161,35 @@ const groups = categoryInfo
         };
       }
 
-      // URL-shared plan (?p=id1,id2,...) takes precedence over the stored plan
+      // URL-shared plan (?p=id1,id2,...) takes precedence over the stored plan,
+      // but never silently: overwriting a non-empty local plan needs confirmation
+      function arraysEqual(a, b) {
+        if (a.length !== b.length) return false;
+        for (var i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+        return true;
+      }
+
       try {
         var params = new URLSearchParams(window.location.search);
         if (params.has('p')) {
           var urlIds = params.get('p').split(',').filter(Boolean);
-          if (urlIds.length > 0) writePlan(urlIds);
+          if (urlIds.length > 0) {
+            var applyUrlPlan = true;
+            var existing = readPlan();
+            if (existing.length > 0 && !arraysEqual(existing, urlIds)) {
+              applyUrlPlan = confirm(
+                'Ein geteilter Trainingsplan mit ' + urlIds.length + ' Übung' + (urlIds.length === 1 ? '' : 'en') +
+                ' wurde per Link geöffnet.\n\n' +
+                'Dein aktueller Plan (' + existing.length + ' Übung' + (existing.length === 1 ? '' : 'en') +
+                ') wird ersetzt. Fortfahren?'
+              );
+              if (!applyUrlPlan) {
+                // Keep the local plan and drop the shared one from the URL
+                history.replaceState({}, '', window.location.pathname);
+              }
+            }
+            if (applyUrlPlan) writePlan(urlIds);
+          }
         }
       } catch (e) {}
 
