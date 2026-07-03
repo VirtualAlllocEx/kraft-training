@@ -28,12 +28,14 @@
   for = "/images/*"
   [headers.values]
     Cache-Control = "public, max-age=86400, stale-while-revalidate=604800"
+    X-Robots-Tag = "noindex, nofollow, noarchive, nosnippet, noimageindex, notranslate"
 
 # Cache Astro built assets (hashed filenames)
 [[headers]]
   for = "/_astro/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
+    X-Robots-Tag = "noindex, nofollow, noarchive, nosnippet, noimageindex, notranslate"
 
 # Category pages: short cache with stale-while-revalidate for freshness
 [[headers]]
