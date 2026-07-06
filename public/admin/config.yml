@@ -5,11 +5,9 @@ locale: 'de'
 site_url: 'https://kraft-training.netlify.app'
 display_url: 'https://kraft-training.netlify.app'
 
-# Editorial workflow deaktiviert: verursacht den bekannten Decap-CMS-Bug
-# „Cannot read properties of undefined (reading 'path')" beim Bildupload
-# via git-gateway (siehe decaporg/decap-cms#7871 u.a.).
-# Änderungen werden jetzt direkt auf den master-Branch geschrieben.
-# publish_mode: editorial_workflow
+# Editorial workflow: jede Änderung ist zunächst ein Entwurf und wird erst
+# nach Klick auf "Veröffentlichen" live.
+publish_mode: editorial_workflow
 
 # Dateinamen (Slugs) ASCII-sicher machen: „Test Übung" → test-uebung.
 # Entspricht der Konvention des Migrationsskripts und verhindert
@@ -20,7 +18,8 @@ slug:
   sanitize_replacement: '-'
 
 backend:
-  name: git-gateway
+  name: github
+  repo: VirtualAlllocEx/kraft-training
   branch: master
   commit_messages:
     create: 'Neue Übung: {{collection}} „{{slug}}"'
