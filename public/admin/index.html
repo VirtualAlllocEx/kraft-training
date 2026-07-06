@@ -7,12 +7,9 @@
   <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
 </head>
 <body>
-  <!-- SRI hash pinned to decap-cms@3.14.1. When bumping the version, regenerate:
-       curl -s https://unpkg.com/decap-cms@<ver>/dist/decap-cms.js | openssl dgst -sha384 -binary | openssl base64 -A -->
-  <script
-    src="https://unpkg.com/decap-cms@3.14.1/dist/decap-cms.js"
-    integrity="sha384-K+E/B3QG3FJrtRXoyUjME4ilx71pYGyrvAVxYvd/p0zCPuXsc3eoEuSzUW3Ke63V"
-    crossorigin="anonymous"
-  ></script>
+  <!-- Patched Decap CMS 3.14.1: guards against decaporg/decap-cms#7871
+       where selectedFile becomes undefined after media upload via git-gateway,
+       crashing the toolbar on selectedFile.path access. -->
+  <script src="/admin/decap-cms-patched.js"></script>
 </body>
 </html>
