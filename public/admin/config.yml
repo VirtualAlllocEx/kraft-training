@@ -41,7 +41,9 @@ backend:
 # Global media root (no leading slash = repo-root relative).
 # Per-collection media_folder uses a LEADING slash so Decap treats the path
 # as absolute from the repo root — without it, paths would be relative to
-# src/data/uebungen/ and break. Do not "normalize" those slashes away.
+# src/data/uebungen/ and break. Do not strip those slashes in config.yml.
+# The local decap-cms-patched.js strips the leading "/" only for GitHub
+# tree API calls (master:/public/... 404s; master:public/... works).
 media_folder: 'public/images/uebungen'
 public_folder: '/images/uebungen'
 

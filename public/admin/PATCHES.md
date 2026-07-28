@@ -24,6 +24,19 @@ Local: `public/admin/decap-cms-patched.js`
 4. **handleDelete / handleDownload**  
    - Guard: no-op when selection lacks `key` / `id|url`.
 
+5. **listFiles leading-slash 404 (git-gateway fetch fail)**  
+   Collection `media_folder: '/public/images/...'` is correct for Decap
+   (absolute from repo root), but GitHub’s tree API rejects
+   `GET .../git/trees/master:/public/...` (404).  
+   - Stock: `const i=Di()(e,"/");` (trim trailing only)  
+   - Patched: `const i=zs()(Di()(e,"/"),"/");` (trim leading + trailing)  
+   so the request becomes `master:public/images/...` (200).
+
+6. **getFileSha**  
+   - Stock: `const r=e.split("/")`  
+   - Patched: `const r=zs()(e,"/").split("/")`  
+   so leading-slash paths do not produce empty tree segments.
+
 ## Re-applying after upgrade
 
 1. Download the new stock `decap-cms.js`.

@@ -1,6 +1,6 @@
 /* KRAFT.TRAINING service worker — offline support */
 
-const VERSION = 'v4';
+const VERSION = 'v5';
 const PREFIX = 'kraft-training-';
 const SHELL_CACHE = PREFIX + 'shell-' + VERSION;
 const PAGES_CACHE = PREFIX + 'pages-' + VERSION;
@@ -143,7 +143,7 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return;
 
   /* Never handle the SW itself or the admin CMS. */
-  if (url.pathname.startsWith('/admin') || url.pathname === '/sw.js') return;
+  if (url.pathname.startsWith('/admin') || url.pathname.startsWith('/.netlify/') || url.pathname === '/sw.js') return;
 
   /* Exercise images: stale-while-revalidate. */
   if (url.pathname.startsWith('/images/') || request.destination === 'image') {
