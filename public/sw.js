@@ -1,15 +1,12 @@
 /* KRAFT.TRAINING service worker — offline support */
 
-const VERSION = 'v6';
+const VERSION = 'v7';
 const PREFIX = 'kraft-training-';
 const SHELL_CACHE = PREFIX + 'shell-' + VERSION;
 const PAGES_CACHE = PREFIX + 'pages-' + VERSION;
 const IMAGES_CACHE = PREFIX + 'images-' + VERSION;
 const CURRENT_CACHES = [SHELL_CACHE, PAGES_CACHE, IMAGES_CACHE];
 
-/* App shell: static routes + manifest. Hashed /_astro/ CSS/JS assets
-   cannot be listed here (names change every build); they are cached
-   cache-first on first request instead. */
 const SHELL_URLS = [
   '/',
   '/plan/',
@@ -30,8 +27,6 @@ const SHELL_URLS = [
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(SHELL_CACHE);
-    /* Tolerate individual failures: one broken URL must not abort the
-       whole shell precache (cache.addAll is all-or-nothing). */
     await Promise.allSettled(
       SHELL_URLS.map((url) => cache.add(new Request(url, { cache: 'reload' })).catch(() => {}))
     );
@@ -51,9 +46,6 @@ self.addEventListener('activate', (event) => {
   })());
 });
 
-/* Cache-first: for immutable assets (hashed build files).
-   Opens the target cache directly — caches.match() would search caches in
-   creation order and always hit SHELL_CACHE first. */
 async function cacheFirst(request, cacheName) {
   const cache = await caches.open(cacheName);
   const cached = await cache.match(request);
@@ -69,7 +61,6 @@ async function cacheFirst(request, cacheName) {
   }
 }
 
-/* Stale-while-revalidate: serve from cache, refresh in the background. */
 async function staleWhileRevalidate(request, cacheName, event) {
   const cache = await caches.open(cacheName);
   const cached = await cache.match(request);
@@ -87,8 +78,6 @@ async function staleWhileRevalidate(request, cacheName, event) {
   return network;
 }
 
-/* Network-first: for navigations. Falls back to PAGES_CACHE, then SHELL
-   precache for the requested URL, then /offline/. */
 async function networkFirst(request, cacheName, event) {
   const cache = await caches.open(cacheName);
   try {
@@ -105,12 +94,9 @@ async function networkFirst(request, cacheName, event) {
   } catch (e) {
     const cached = await cache.match(request);
     if (cached) return cached;
-
     const shellCache = await caches.open(SHELL_CACHE);
     const shellHit = await shellCache.match(request);
     if (shellHit) return shellHit;
-
-    // trailingSlash: 'always' — try with trailing slash if missing
     try {
       const u = new URL(request.url);
       if (!u.pathname.endsWith('/') && !u.pathname.split('/').pop().includes('.')) {
@@ -120,7 +106,6 @@ async function networkFirst(request, cacheName, event) {
         if (pageWithSlash) return pageWithSlash;
       }
     } catch (err) { /* ignore */ }
-
     return (
       (await shellCache.match('/offline/')) ||
       (await shellCache.match('/')) ||
@@ -132,24 +117,33 @@ async function networkFirst(request, cacheName, event) {
   }
 }
 
+function mustBypass(request, url) {
+  // Decap AssetProxy / previews — SW cannot re-fetch client blob: URLs
+  if (url.protocol === 'blob:' || url.protocol === 'data:') return true;
+  if (request.method !== 'GET') return true;
+  if (url.origin !== self.location.origin) return true;
+  const path = url.pathname;
+  if (path === '/sw.js') return true;
+  if (path === '/admin' || path.indexOf('/admin/') === 0) return true;
+  if (path === '/.netlify' || path.indexOf('/.netlify/') === 0) return true;
+  return false;
+}
+
 self.addEventListener('fetch', (event) => {
   const request = event.request;
-  if (request.method !== 'GET') return;
+  let url;
+  try {
+    url = new URL(request.url);
+  } catch (e) {
+    return;
+  }
 
-  const url = new URL(request.url);
+  // Bare return = browser default network (never respondWith)
+  if (mustBypass(request, url)) return;
 
-  /* blob:/data: — Decap AssetProxy.toBase64 uses fetch(blob:...) for uploads */
-  if (url.protocol === 'blob:' || url.protocol === 'data:') return;
+  const path = url.pathname;
 
-  /* Same-origin only. Cross-origin requests (Google Fonts, Netlify
-     Identity) are never intercepted. */
-  if (url.origin !== self.location.origin) return;
-
-  /* Never handle the SW itself or the admin CMS. */
-  if (url.pathname.startsWith('/admin') || url.pathname.startsWith('/.netlify/') || url.pathname === '/sw.js') return;
-
-  /* Exercise images: stale-while-revalidate. */
-  if (url.pathname.startsWith('/images/') || request.destination === 'image') {
+  if (path.indexOf('/images/') === 0 || request.destination === 'image') {
     event.respondWith(
       staleWhileRevalidate(request, IMAGES_CACHE, event)
         .catch(() => new Response('', { status: 504, statusText: 'Offline' }))
@@ -157,30 +151,26 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  /* Hashed Astro assets: cache-first (immutable via hash). */
-  if (url.pathname.startsWith('/_astro/')) {
+  if (path.indexOf('/_astro/') === 0) {
     event.respondWith(cacheFirst(request, SHELL_CACHE));
     return;
   }
 
-  /* Manifest + icons: prefer cache when offline (also precached in shell). */
   if (
-    url.pathname === '/manifest.json' ||
-    url.pathname === '/favicon.svg' ||
-    url.pathname.startsWith('/icon-') ||
-    url.pathname === '/apple-touch-icon.png'
+    path === '/manifest.json' ||
+    path === '/favicon.svg' ||
+    path.indexOf('/icon-') === 0 ||
+    path === '/apple-touch-icon.png'
   ) {
     event.respondWith(cacheFirst(request, SHELL_CACHE));
     return;
   }
 
-  /* Navigations: network-first. */
   if (request.mode === 'navigate' || request.destination === 'document') {
     event.respondWith(networkFirst(request, PAGES_CACHE, event));
     return;
   }
 
-  /* Everything else same-origin: network, then shell/cache fallback. */
   event.respondWith(
     fetch(request).catch(async () => {
       const shellCache = await caches.open(SHELL_CACHE);

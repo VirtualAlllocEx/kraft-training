@@ -5,25 +5,79 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Admin | KRAFT.TRAINING</title>
   <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
-  <!-- Site SW must not control /admin: it broke Medien uploads by intercepting
-       Decap's fetch(blob:...) in AssetProxy.toBase64 (Failed to fetch).
-       Unregister any controlling SW once, then load the CMS. -->
+  <!--
+    Root-scoped site SW (scope /) can claim /admin and break Decap media
+    upload (fetch(blob:…) → Failed to fetch). Boot sequence:
+    1) Unregister every SW registration
+    2) Reload once if a controller is still attached
+    3) Only then inject the patched CMS bundle
+    4) If another tab re-claims us (clients.claim), reload again
+  -->
   <script>
     (function () {
-      if (!('serviceWorker' in navigator)) return;
-      navigator.serviceWorker.getRegistrations().then(function (regs) {
-        if (!regs.length) return;
-        return Promise.all(regs.map(function (r) { return r.unregister(); })).then(function () {
-          if (navigator.serviceWorker.controller) {
-            window.location.reload();
-          }
+      var CMS_SRC = '/admin/decap-cms-patched.js?v=7';
+      var BUST_KEY = 'kraft-admin-sw-bust-v7';
+      var cmsRequested = false;
+
+      function loadCms() {
+        if (cmsRequested) return;
+        cmsRequested = true;
+        var s = document.createElement('script');
+        s.id = 'decap-cms-script';
+        s.src = CMS_SRC;
+        s.async = false;
+        (document.body || document.documentElement).appendChild(s);
+      }
+
+      function whenDomReady(fn) {
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', fn);
+        } else {
+          fn();
+        }
+      }
+
+      function unregisterAll() {
+        return navigator.serviceWorker.getRegistrations().then(function (regs) {
+          if (!regs.length) return;
+          return Promise.all(regs.map(function (r) { return r.unregister(); }));
         });
-      }).catch(function () { /* ignore */ });
+      }
+
+      if (!('serviceWorker' in navigator)) {
+        whenDomReady(loadCms);
+        return;
+      }
+
+      // Public tab may register /sw.js and claim this admin client later.
+      navigator.serviceWorker.addEventListener('controllerchange', function () {
+        if (!navigator.serviceWorker.controller) return;
+        unregisterAll()
+          .catch(function () {})
+          .then(function () { window.location.reload(); });
+      });
+
+      unregisterAll()
+        .catch(function () {})
+        .then(function () {
+          if (navigator.serviceWorker.controller) {
+            // unregister() does not drop controller until navigation
+            if (!sessionStorage.getItem(BUST_KEY)) {
+              sessionStorage.setItem(BUST_KEY, '1');
+              window.location.reload();
+              return;
+            }
+          }
+          sessionStorage.removeItem(BUST_KEY);
+          whenDomReady(loadCms);
+        });
     })();
   </script>
 </head>
 <body>
-  <!-- Patched Decap CMS 3.14.1 — see PATCHES.md -->
-  <script src="/admin/decap-cms-patched.js"></script>
+  <!-- Patched Decap CMS 3.14.1 — injected after SW control is cleared. See PATCHES.md -->
+  <noscript>
+    <p style="font-family:sans-serif;padding:2rem;">JavaScript wird für den Admin-Bereich benötigt.</p>
+  </noscript>
 </body>
 </html>

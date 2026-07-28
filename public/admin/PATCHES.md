@@ -41,9 +41,14 @@ Local: `public/admin/decap-cms-patched.js`
    Stock `toBase64()` always does `fetch(this.url)` on a `blob:` object URL.
    The site-wide SW claimed `/admin` clients and re-handled those blob fetches,
    which fails in the SW context → **Failed to fetch** on upload.
-   - Patched `toBase64`: prefer `this.fileObj` + `FileReader` (no blob fetch).
-   - `public/sw.js`: never intercept `blob:` / `data:`; skip `/.netlify/`.
-   - `admin/index.html`: unregister any SW controller so CMS is not claimed.
+   - Patched `toBase64`: prefer `this.fileObj` + `FileReader`; try/catch on
+     fetch fallback; FileReader `onerror` → empty string.
+   - `handlePersist`: no-op if file list empty (cancel dialog).
+   - `public/sw.js` v7: `mustBypass` for blob/data/admin/.netlify/non-GET.
+   - `admin/index.html`: **gate CMS load** until SW unregister + no controller
+     (no race with static script tag); reload on re-claim.
+   - Admin CSP `connect-src` must include **`blob:`** (otherwise browser
+     blocks `fetch(blob:…)` even without SW — classic “Failed to fetch”).
 
 ## Re-applying after upgrade
 

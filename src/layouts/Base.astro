@@ -759,6 +759,10 @@ const currentPath = Astro.url.pathname;
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
         try {
+          // Never register on /admin — Decap media upload must stay off SW scope
+          if (location.pathname === '/admin' || location.pathname.indexOf('/admin/') === 0) {
+            return;
+          }
           navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).then(function (reg) {
             reg.addEventListener('updatefound', function () {
               var newWorker = reg.installing;
