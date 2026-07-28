@@ -1,5 +1,6 @@
 ---
 import '../styles/global.css';
+import { CATEGORIES } from '../data/categories';
 
 interface Props {
   title: string;
@@ -8,15 +9,7 @@ interface Props {
 
 const { title, description = 'Trainingsübungen Bibliothek für Fußballtrainer' } = Astro.props;
 
-const categories = [
-  { slug: 'aufwaermen', name: 'Aufwärmen' },
-  { slug: 'passspiel', name: 'Passspiel' },
-  { slug: 'torabschluss', name: 'Torabschluss' },
-  { slug: 'spielform', name: 'Spielform' },
-  { slug: 'halle', name: 'Halle' },
-  { slug: 'kondition', name: 'Kondition' },
-];
-
+const categories = CATEGORIES;
 const currentPath = Astro.url.pathname;
 ---
 
@@ -50,8 +43,11 @@ const currentPath = Astro.url.pathname;
   <meta property="og:url" content={new URL(Astro.url.pathname, Astro.site).href} />
   <meta property="og:image" content={new URL('/og-image.svg', Astro.site).href} />
   <meta name="twitter:card" content="summary_large_image" />
-  <meta property="twitter:image" content={new URL('/og-image.svg', Astro.site).href} />
+  <meta name="twitter:title" content={`${title} | KRAFT.TRAINING`} />
+  <meta name="twitter:description" content={description} />
+  <meta name="twitter:image" content={new URL('/og-image.svg', Astro.site).href} />
   <title>{title} | KRAFT.TRAINING</title>
+  <script src="/js/plan-storage.js" defer></script>
   <script is:inline>{
     (function(){
       // Netlify Identity: invite/recovery/confirmation links from e-mails
@@ -191,10 +187,10 @@ const currentPath = Astro.url.pathname;
 
   <!-- Lightbox overlay -->
   <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Bildansicht" aria-hidden="true" inert>
-    <button class="lightbox-close" id="lightboxClose" aria-label="Schließen">&times;</button>
-    <button class="lightbox-prev" id="lightboxPrev" aria-label="Vorheriges Bild">&#8249;</button>
+    <button type="button" class="lightbox-close" id="lightboxClose" aria-label="Schließen">&times;</button>
+    <button type="button" class="lightbox-prev" id="lightboxPrev" aria-label="Vorheriges Bild">&#8249;</button>
     <div class="lightbox-stage">
-      <img id="lightboxImg" src="" alt="" />
+      <img id="lightboxImg" alt="" />
       <div class="lightbox-meta" id="lightboxMeta">
         <div class="lightbox-title" id="lightboxTitle" aria-live="polite" role="status"></div>
         <div class="lightbox-tags" id="lightboxTags" hidden></div>
@@ -206,7 +202,7 @@ const currentPath = Astro.url.pathname;
         </div>
       </div>
     </div>
-    <button class="lightbox-next" id="lightboxNext" aria-label="Nächstes Bild">&#8250;</button>
+    <button type="button" class="lightbox-next" id="lightboxNext" aria-label="Nächstes Bild">&#8250;</button>
   </div>
 
   <script is:inline>
@@ -218,6 +214,22 @@ const currentPath = Astro.url.pathname;
       var scrollTopBtn = document.getElementById('scrollTop');
       var footer = document.querySelector('.site-footer');
 
+      function setMenuBackgroundInert(on) {
+        // Keep the header (burger) interactive; inert the rest of the page.
+        if (mainContent) {
+          if (on) mainContent.setAttribute('inert', '');
+          else mainContent.removeAttribute('inert');
+        }
+        if (footer) {
+          if (on) footer.setAttribute('inert', '');
+          else footer.removeAttribute('inert');
+        }
+        if (scrollTopBtn) {
+          if (on) scrollTopBtn.setAttribute('inert', '');
+          else scrollTopBtn.removeAttribute('inert');
+        }
+      }
+
       function closeMenu() {
         burger.classList.remove('open');
         nav.classList.remove('open');
@@ -226,6 +238,7 @@ const currentPath = Astro.url.pathname;
         burger.setAttribute('aria-expanded', 'false');
         nav.setAttribute('aria-hidden', 'true');
         nav.setAttribute('inert', '');
+        setMenuBackgroundInert(false);
       }
 
       burger.addEventListener('click', function () {
@@ -237,10 +250,12 @@ const currentPath = Astro.url.pathname;
         nav.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
         if (isOpen) {
           nav.removeAttribute('inert');
+          setMenuBackgroundInert(true);
           var firstLink = nav.querySelector('a');
           if (firstLink) firstLink.focus();
         } else {
           nav.setAttribute('inert', '');
+          setMenuBackgroundInert(false);
           burger.focus();
         }
       });
@@ -323,29 +338,39 @@ const currentPath = Astro.url.pathname;
       var lightboxDetails = document.getElementById('lightboxDetails');
       var lightboxPlanBtn = document.getElementById('lightboxPlanBtn');
 
-      // --- Trainingsplan storage helpers (shared key with /plan/) ---
+      // --- Trainingsplan storage (public/js/plan-storage.js, with inline fallback) ---
       var PLAN_STORAGE_KEY = 'kraft:plan:v1';
 
       function readPlan() {
+        if (window.kraftPlan && typeof window.kraftPlan.read === 'function') {
+          return window.kraftPlan.read();
+        }
         try {
           var raw = JSON.parse(localStorage.getItem(PLAN_STORAGE_KEY) || 'null');
-          if (Array.isArray(raw)) return raw;
-          if (raw && Array.isArray(raw.ids)) return raw.ids; // future format
-          if (raw && Array.isArray(raw.current)) return raw.current; // T5 named-plans format
+          if (Array.isArray(raw)) return raw.slice();
+          if (raw && Array.isArray(raw.current)) return raw.current.slice();
+          if (raw && Array.isArray(raw.ids)) return raw.ids.slice();
         } catch (e) {}
         return [];
       }
 
       function writePlan(ids) {
+        if (window.kraftPlan && typeof window.kraftPlan.write === 'function') {
+          return window.kraftPlan.write(ids);
+        }
         try {
           var raw = JSON.parse(localStorage.getItem(PLAN_STORAGE_KEY) || 'null');
           if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
-            raw.current = ids;
+            if (Array.isArray(raw.current) || !Array.isArray(raw.ids)) raw.current = ids;
+            else raw.ids = ids;
             localStorage.setItem(PLAN_STORAGE_KEY, JSON.stringify(raw));
           } else {
             localStorage.setItem(PLAN_STORAGE_KEY, JSON.stringify(ids));
           }
-        } catch (e) {}
+          return true;
+        } catch (e) {
+          return false;
+        }
       }
 
       function updatePlanBadge() {
@@ -364,6 +389,18 @@ const currentPath = Astro.url.pathname;
 
       window.updatePlanBadge = updatePlanBadge;
       window.addEventListener('plan-changed', updatePlanBadge);
+      window.addEventListener('pageshow', updatePlanBadge);
+      window.addEventListener('storage', function (e) {
+        if (e.key === PLAN_STORAGE_KEY || (window.kraftPlan && e.key === window.kraftPlan.KEY)) {
+          updatePlanBadge();
+        }
+      });
+      // plan-storage.js is defer'd — re-run badge once it is available
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', updatePlanBadge);
+      } else {
+        updatePlanBadge();
+      }
       updatePlanBadge();
 
       function isSafeUrl(url) {
@@ -486,6 +523,19 @@ const currentPath = Astro.url.pathname;
           }
           lightboxCleanupTimer = null;
         }, 350);
+      }
+
+      if (lightboxImg) {
+        lightboxImg.addEventListener('error', function () {
+          if (!lightbox.classList.contains('open')) return;
+          lightboxImg.removeAttribute('src');
+          lightboxImg.alt = 'Bild nicht verfügbar';
+          if (lightboxTitle && lbIndex >= 0 && lbImages[lbIndex]) {
+            lightboxTitle.textContent =
+              (lbIndex + 1) + ' von ' + lbImages.length + ' – ' +
+              lbImages[lbIndex].title + ' (Bild nicht verfügbar)';
+          }
+        });
       }
 
       function showLbImage(idx) {
@@ -709,7 +759,7 @@ const currentPath = Astro.url.pathname;
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
         try {
-          navigator.serviceWorker.register('/sw.js').then(function (reg) {
+          navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).then(function (reg) {
             reg.addEventListener('updatefound', function () {
               var newWorker = reg.installing;
               if (!newWorker) return;

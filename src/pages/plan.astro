@@ -1,15 +1,9 @@
 ---
 import Base from '../layouts/Base.astro';
 import { getCollection } from 'astro:content';
+import { CATEGORIES } from '../data/categories';
 
-const categoryInfo = [
-  { slug: 'aufwaermen', name: 'Aufwärmen' },
-  { slug: 'passspiel', name: 'Passspiel' },
-  { slug: 'torabschluss', name: 'Torabschluss' },
-  { slug: 'spielform', name: 'Spielform' },
-  { slug: 'halle', name: 'Halle' },
-  { slug: 'kondition', name: 'Kondition' },
-];
+const categoryInfo = [...CATEGORIES];
 
 const allExercises = await getCollection('uebungen');
 
@@ -120,19 +114,28 @@ const groups = categoryInfo
       // ---- Storage: the plan is a strictly ordered array of exercise ids ----
 
       function readPlan() {
+        if (window.kraftPlan && typeof window.kraftPlan.read === 'function') {
+          return window.kraftPlan.read();
+        }
         try {
           var raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
-          if (Array.isArray(raw)) return raw;
-          if (raw && Array.isArray(raw.ids)) return raw.ids;
-          if (raw && Array.isArray(raw.current)) return raw.current; // named-plans format read by the header badge
+          if (Array.isArray(raw)) return raw.slice();
+          if (raw && Array.isArray(raw.current)) return raw.current.slice();
+          if (raw && Array.isArray(raw.ids)) return raw.ids.slice();
         } catch (e) {}
         return [];
       }
 
       function writePlan(ids) {
+        if (window.kraftPlan && typeof window.kraftPlan.write === 'function') {
+          return window.kraftPlan.write(ids);
+        }
         try {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
-        } catch (e) {}
+          return true;
+        } catch (e) {
+          return false;
+        }
       }
 
       // Parses "10 Minuten", "15 min", "5-10 min" to minutes (ranges → midpoint)
@@ -545,18 +548,22 @@ const groups = categoryInfo
         buildPrintContainer();
       });
 
-      planPrint.addEventListener('click', function () {
-        if (knownIds().length === 0) {
-          alert('Bitte mindestens eine Übung auswählen.');
-          return;
-        }
-        waitForImages(buildPrintContainer()).then(function () {
-          window.print();
+      if (planPrint) {
+        planPrint.addEventListener('click', function () {
+          if (knownIds().length === 0) {
+            alert('Bitte mindestens eine Übung auswählen.');
+            return;
+          }
+          waitForImages(buildPrintContainer()).then(function () {
+            window.print();
+          });
         });
-      });
+      }
 
-      document.getElementById('planSelectAll').addEventListener('click', function () { setAll(true); });
-      document.getElementById('planClear').addEventListener('click', function () { setAll(false); });
+      var selectAllBtn = document.getElementById('planSelectAll');
+      var clearBtn = document.getElementById('planClear');
+      if (selectAllBtn) selectAllBtn.addEventListener('click', function () { setAll(true); });
+      if (clearBtn) clearBtn.addEventListener('click', function () { setAll(false); });
 
       for (var i = 0; i < checks.length; i++) {
         syncItem(checks[i]);
@@ -576,6 +583,20 @@ const groups = categoryInfo
         var controls = document.querySelector('.plan-controls');
         if (controls) controls.after(msg);
       }
+
+      function rehydrateFromStorage() {
+        var ids = knownIds();
+        for (var r = 0; r < checks.length; r++) {
+          checks[r].checked = ids.indexOf(checks[r].value) !== -1;
+          syncItem(checks[r]);
+        }
+        update();
+        if (typeof renderSummary === 'function') renderSummary();
+      }
+      window.addEventListener('pageshow', rehydrateFromStorage);
+      window.addEventListener('storage', function (e) {
+        if (e.key === STORAGE_KEY) rehydrateFromStorage();
+      });
 
       update();
       renderSummary();

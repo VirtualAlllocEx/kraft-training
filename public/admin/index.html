@@ -7,9 +7,11 @@
   <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
 </head>
 <body>
-  <!-- Patched Decap CMS 3.14.1: guards against decaporg/decap-cms#7871
-       where selectedFile becomes undefined after media upload via git-gateway,
-       crashing the toolbar on selectedFile.path access. -->
+  <!-- Patched Decap CMS 3.14.1 for decaporg/decap-cms#7871:
+       - toolbar: selectedFile && selectedFile.path (no crash if undefined)
+       - after upload: wait until files[0] exists before selecting (avoids
+         clearing isPersisted while git-gateway media list is still empty)
+       - handleInsert/Delete/Download: no-op when selection has no path/key -->
   <script src="/admin/decap-cms-patched.js"></script>
 </body>
 </html>

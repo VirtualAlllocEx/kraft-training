@@ -1,15 +1,7 @@
 ---
 import Base from '../../layouts/Base.astro';
 import { getCollection } from 'astro:content';
-
-const categoryMap: Record<string, string> = {
-  aufwaermen: 'Aufwärmen',
-  passspiel: 'Passspiel',
-  torabschluss: 'Torabschluss',
-  spielform: 'Spielform',
-  halle: 'Halle',
-  kondition: 'Kondition',
-};
+import { categoryMap } from '../../data/categories';
 
 export async function getStaticPaths() {
   const exercises = await getCollection('uebungen');
@@ -66,13 +58,21 @@ const jsonLd = JSON.stringify({
           </div>
         )}
 
-        {data.videoUrl && (
-          <p style="margin-top: 24px;">
-            <a href={data.videoUrl} class="link-bold" target="_blank" rel="noopener noreferrer">
-              ▶ Video ansehen
-            </a>
-          </p>
-        )}
+        {data.videoUrl && (() => {
+          try {
+            const u = new URL(data.videoUrl);
+            if (u.protocol !== 'http:' && u.protocol !== 'https:') return null;
+          } catch {
+            return null;
+          }
+          return (
+            <p style="margin-top: 24px;">
+              <a href={data.videoUrl} class="link-bold" target="_blank" rel="noopener noreferrer">
+                ▶ Video ansehen
+              </a>
+            </p>
+          );
+        })()}
 
         <div class="exercise-detail-actions" style="margin-top: 40px; display: flex; gap: 12px; flex-wrap: wrap;">
           <button type="button" class="btn-add-to-plan" data-id={exercise.id} aria-pressed="false">+ Zum Trainingsplan hinzufügen</button>
@@ -114,33 +114,37 @@ const jsonLd = JSON.stringify({
         }
       }
 
-      // Same storage handling as the Base layout: the stored value may be a
-      // plain array of ids or an object ({ids: []} / {current: []} formats).
-      // Reading only arrays and writing arrays back would clobber the object.
       function readPlan() {
+        if (window.kraftPlan && typeof window.kraftPlan.read === 'function') {
+          return window.kraftPlan.read();
+        }
         try {
           var raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
-          if (Array.isArray(raw)) return raw;
-          if (raw && Array.isArray(raw.ids)) return raw.ids;
-          if (raw && Array.isArray(raw.current)) return raw.current;
+          if (Array.isArray(raw)) return raw.slice();
+          if (raw && Array.isArray(raw.current)) return raw.current.slice();
+          if (raw && Array.isArray(raw.ids)) return raw.ids.slice();
         } catch (e) {}
         return [];
       }
 
       function writePlan(ids) {
+        if (window.kraftPlan && typeof window.kraftPlan.write === 'function') {
+          return window.kraftPlan.write(ids);
+        }
         var raw = null;
-        // Parsed separately: a corrupt stored value must not prevent the
-        // write — it just means we start over with a plain array
         try { raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch (e) {}
         try {
           if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
-            if (Array.isArray(raw.ids)) raw.ids = ids;
-            else raw.current = ids;
+            if (Array.isArray(raw.current) || !Array.isArray(raw.ids)) raw.current = ids;
+            else raw.ids = ids;
             localStorage.setItem(STORAGE_KEY, JSON.stringify(raw));
           } else {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
           }
-        } catch (e) {}
+          return true;
+        } catch (e) {
+          return false;
+        }
       }
 
       function syncAddBtn() {
@@ -166,16 +170,21 @@ const jsonLd = JSON.stringify({
           var idx = ids.indexOf(id);
           if (idx === -1) {
             ids.push(id);
-            writePlan(ids);
+            if (!writePlan(ids)) {
+              setStatus('Speichern fehlgeschlagen (privater Modus / voller Speicher)', true);
+              return;
+            }
             setStatus('✓ Zum Trainingsplan hinzugefügt (' + countLabel(ids.length) + ')');
           } else {
             ids.splice(idx, 1);
-            writePlan(ids);
+            if (!writePlan(ids)) {
+              setStatus('Speichern fehlgeschlagen (privater Modus / voller Speicher)', true);
+              return;
+            }
             setStatus('Aus dem Trainingsplan entfernt' +
               (ids.length > 0 ? ' (' + countLabel(ids.length) + ')' : ''));
           }
           syncAddBtn();
-          // Lets the header badge (Base layout) pick up the change
           window.dispatchEvent(new CustomEvent('plan-changed'));
         });
 

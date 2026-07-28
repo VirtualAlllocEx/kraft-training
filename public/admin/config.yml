@@ -29,7 +29,7 @@ backend:
     uploadMedia: 'Bild hochgeladen: {{path}}'
     deleteMedia: 'Bild gelöscht: {{path}}'
 
-# Hinweis/Limitation: Das 1-MB-Limit (max_file_size) kann in Decap CMS nur
+# Hinweis/Limitation: Das 3-MB-Limit (max_file_size) kann in Decap CMS nur
 # pro Bild-Feld gesetzt werden (siehe media_library-Block bei jedem
 # 'image'-Widget unten). Ein globaler max_file_size-Block auf oberster Ebene
 # wird NICHT unterstützt — 'media_library: name: ...' ist nur für externe
@@ -38,6 +38,10 @@ backend:
 # unbenutzbar (verifiziert gegen decap-cms-core, Stand 3.3.3).
 # Folge: Uploads über die globale Medienbibliothek („Medien" in der
 # Kopfleiste) umgehen die Größenprüfung — siehe Hinweis in ANLEITUNG.md.
+# Global media root (no leading slash = repo-root relative).
+# Per-collection media_folder uses a LEADING slash so Decap treats the path
+# as absolute from the repo root — without it, paths would be relative to
+# src/data/uebungen/ and break. Do not "normalize" those slashes away.
 media_folder: 'public/images/uebungen'
 public_folder: '/images/uebungen'
 
@@ -69,8 +73,8 @@ collections:
         required: true
         media_library:
           config:
-            max_file_size: 1048576 # 1 MB
-        hint: 'Foto oder Zeichnung der Übung. Am besten quadratisch, unter 1 MB. Wird auf der Übersicht angezeigt.'
+            max_file_size: 3145728 # 3 MB
+        hint: 'Foto oder Zeichnung der Übung. Am besten quadratisch, unter 3 MB. Wird auf der Übersicht angezeigt.'
       - label: 'Reihenfolge'
         name: 'order'
         widget: 'number'
@@ -114,8 +118,8 @@ collections:
         required: true
         media_library:
           config:
-            max_file_size: 1048576 # 1 MB
-        hint: 'Foto oder Zeichnung der Übung. Am besten quadratisch, unter 1 MB. Wird auf der Übersicht angezeigt.'
+            max_file_size: 3145728 # 3 MB
+        hint: 'Foto oder Zeichnung der Übung. Am besten quadratisch, unter 3 MB. Wird auf der Übersicht angezeigt.'
       - label: 'Reihenfolge'
         name: 'order'
         widget: 'number'
@@ -159,8 +163,8 @@ collections:
         required: true
         media_library:
           config:
-            max_file_size: 1048576 # 1 MB
-        hint: 'Foto oder Zeichnung der Übung. Am besten quadratisch, unter 1 MB. Wird auf der Übersicht angezeigt.'
+            max_file_size: 3145728 # 3 MB
+        hint: 'Foto oder Zeichnung der Übung. Am besten quadratisch, unter 3 MB. Wird auf der Übersicht angezeigt.'
       - label: 'Reihenfolge'
         name: 'order'
         widget: 'number'
@@ -204,8 +208,8 @@ collections:
         required: true
         media_library:
           config:
-            max_file_size: 1048576 # 1 MB
-        hint: 'Foto oder Zeichnung der Übung. Am besten quadratisch, unter 1 MB. Wird auf der Übersicht angezeigt.'
+            max_file_size: 3145728 # 3 MB
+        hint: 'Foto oder Zeichnung der Übung. Am besten quadratisch, unter 3 MB. Wird auf der Übersicht angezeigt.'
       - label: 'Reihenfolge'
         name: 'order'
         widget: 'number'
@@ -249,8 +253,8 @@ collections:
         required: true
         media_library:
           config:
-            max_file_size: 1048576 # 1 MB
-        hint: 'Foto oder Zeichnung der Übung. Am besten quadratisch, unter 1 MB. Wird auf der Übersicht angezeigt.'
+            max_file_size: 3145728 # 3 MB
+        hint: 'Foto oder Zeichnung der Übung. Am besten quadratisch, unter 3 MB. Wird auf der Übersicht angezeigt.'
       - label: 'Reihenfolge'
         name: 'order'
         widget: 'number'
@@ -294,8 +298,8 @@ collections:
         required: true
         media_library:
           config:
-            max_file_size: 1048576 # 1 MB
-        hint: 'Foto oder Zeichnung der Übung. Am besten quadratisch, unter 1 MB. Wird auf der Übersicht angezeigt.'
+            max_file_size: 3145728 # 3 MB
+        hint: 'Foto oder Zeichnung der Übung. Am besten quadratisch, unter 3 MB. Wird auf der Übersicht angezeigt.'
       - label: 'Reihenfolge'
         name: 'order'
         widget: 'number'

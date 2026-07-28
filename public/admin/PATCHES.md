@@ -1,0 +1,31 @@
+# Decap CMS 3.14.1 local patches
+
+Stock: `https://unpkg.com/decap-cms@3.14.1/dist/decap-cms.js`  
+Local: `public/admin/decap-cms-patched.js`
+
+## Issue
+
+[decaporg/decap-cms#7871](https://github.com/decaporg/decap-cms/issues/7871) — after media upload via git-gateway, `selectedFile` can be undefined while the media list is still empty, crashing the UI on `.path` access.
+
+## Patches applied (search strings in minified bundle)
+
+1. **Toolbar**  
+   - Stock: `path:m.path,name:m.name,draft:m.draft`  
+   - Patched: `path:m&&m.path,name:m&&m.name,draft:m&&m.draft`
+
+2. **After persist — wait for list**  
+   - Stock: `this.state.isPersisted&&this.setState({selectedFile:e.files[0],isPersisted:!1})`  
+   - Patched: `this.state.isPersisted&&e.files[0]&&this.setState({selectedFile:e.files[0],isPersisted:!1})`  
+   - Same for `this.props.files[0]` in `componentDidUpdate`.
+
+3. **handleInsert**  
+   - Guard: `if(!e||!e.path)return` before insert.
+
+4. **handleDelete / handleDownload**  
+   - Guard: no-op when selection lacks `key` / `id|url`.
+
+## Re-applying after upgrade
+
+1. Download the new stock `decap-cms.js`.
+2. Apply the four replacements above (adjust minified names if they changed).
+3. Save as `decap-cms-patched.js` and update the version comment in `index.html`.

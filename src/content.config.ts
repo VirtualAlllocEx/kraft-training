@@ -6,7 +6,13 @@ const uebungen = defineCollection({
   schema: z.object({
     title: z.string(),
     category: z.enum(['aufwaermen', 'passspiel', 'torabschluss', 'spielform', 'halle', 'kondition']),
-    image: z.string(),
+    image: z
+      .string()
+      .min(1)
+      .refine(
+        (v) => v.startsWith('/images/uebungen/'),
+        'image muss mit /images/uebungen/ beginnen'
+      ),
     order: z.preprocess((v) => {
       if (v === null || v === undefined || v === '') return 0;
       if (typeof v === 'string') {

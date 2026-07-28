@@ -1,17 +1,14 @@
 ---
 import Base from '../layouts/Base.astro';
 import { getCollection } from 'astro:content';
+import { CATEGORIES } from '../data/categories';
 
 const allExercises = await getCollection('uebungen');
 
-const categoryInfo = [
-  { slug: 'aufwaermen', name: 'Aufwärmen', number: '01' },
-  { slug: 'passspiel', name: 'Passspiel', number: '02' },
-  { slug: 'torabschluss', name: 'Torabschluss', number: '03' },
-  { slug: 'spielform', name: 'Spielform', number: '04' },
-  { slug: 'halle', name: 'Halle', number: '05' },
-  { slug: 'kondition', name: 'Kondition', number: '06' },
-];
+const categoryInfo = CATEGORIES.map((cat, i) => ({
+  ...cat,
+  number: String(i + 1).padStart(2, '0'),
+}));
 
 const categories = categoryInfo.map(cat => ({
   ...cat,

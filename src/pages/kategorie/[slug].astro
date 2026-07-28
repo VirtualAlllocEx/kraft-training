@@ -1,19 +1,11 @@
 ---
 import Base from '../../layouts/Base.astro';
 import { getCollection } from 'astro:content';
-
-const categoryMap: Record<string, string> = {
-  aufwaermen: 'Aufwärmen',
-  passspiel: 'Passspiel',
-  torabschluss: 'Torabschluss',
-  spielform: 'Spielform',
-  halle: 'Halle',
-  kondition: 'Kondition',
-};
+import { CATEGORY_SLUGS, categoryMap } from '../../data/categories';
 
 export async function getStaticPaths() {
   const exercises = await getCollection('uebungen');
-  const slugs = ['aufwaermen', 'passspiel', 'torabschluss', 'spielform', 'halle', 'kondition'];
+  const slugs = CATEGORY_SLUGS;
 
   return slugs.map(slug => {
     const filtered = exercises
@@ -92,7 +84,7 @@ const categoryName = categoryMap[slug!] || slug;
     ) : (
       <div class="exercise-grid">
         {exercises.map((exercise, idx) => (
-          <div
+          <article
             class="exercise-card"
             data-id={exercise.id}
             data-src={exercise.data.image}
@@ -102,20 +94,24 @@ const categoryName = categoryMap[slug!] || slug;
             data-duration={exercise.data.duration ?? ''}
             data-players={exercise.data.playerCount ?? ''}
             data-index={idx}
-            role="button"
-            tabindex="0"
-            aria-label={`${exercise.data.title} vergrößern`}
           >
-            <img
-              src={exercise.data.image}
-              alt={exercise.data.title}
-              loading={idx < 4 ? 'eager' : 'lazy'}
-              decoding="async"
-              width="600"
-              height="450"
-              fetchpriority={idx < 2 ? 'high' : 'auto'}
-            />
-            <div class="exercise-name">{exercise.data.title}</div>
+            <a
+              class="exercise-card-open"
+              href={`/uebung/${exercise.id}/`}
+              data-lightbox-open
+              aria-label={`${exercise.data.title} vergrößern`}
+            >
+              <img
+                src={exercise.data.image}
+                alt={exercise.data.title}
+                loading={idx < 4 ? 'eager' : 'lazy'}
+                decoding="async"
+                width="600"
+                height="450"
+                fetchpriority={idx < 2 ? 'high' : 'auto'}
+              />
+              <div class="exercise-name">{exercise.data.title}</div>
+            </a>
             {(exercise.data.duration || exercise.data.playerCount) && (
               <div class="exercise-tags">
                 {exercise.data.duration && <span class="exercise-tag">⏱ {exercise.data.duration}</span>}
@@ -135,7 +131,7 @@ const categoryName = categoryMap[slug!] || slug;
               <span class="exercise-plan-btn-text">Plan</span>
               <span class="exercise-plan-btn-check" aria-hidden="true">✓</span>
             </button>
-          </div>
+          </article>
         ))}
       </div>
     )}
@@ -189,17 +185,13 @@ const categoryName = categoryMap[slug!] || slug;
 
       for (var j = 0; j < cards.length; j++) {
         (function (card) {
-          card.addEventListener('click', function (e) {
-            if (this.dataset.broken === 'true') return;
-            if (e.target.closest('.exercise-plan-btn')) return; // let the plan button handle it
+          var openLink = card.querySelector('[data-lightbox-open]');
+          if (!openLink) return;
+          openLink.addEventListener('click', function (e) {
+            if (card.dataset.broken === 'true') return;
+            // Progressive enhancement: open lightbox when JS works
+            e.preventDefault();
             openCardLightbox(card);
-          });
-          card.addEventListener('keydown', function (e) {
-            if (e.target.closest('.exercise-plan-btn')) return; // let the plan button handle it
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              openCardLightbox(card);
-            }
           });
         })(cards[j]);
       }
@@ -215,14 +207,13 @@ const categoryName = categoryMap[slug!] || slug;
         if (brokenCard) {
           brokenCard.dataset.broken = 'true';
           brokenCard.setAttribute('aria-disabled', 'true');
-          // The card no longer opens anything — take it out of the tab order.
-          // The plan button inside stays tabbable and functional.
-          brokenCard.setAttribute('tabindex', '-1');
+          var openLink = brokenCard.querySelector('[data-lightbox-open]');
+          if (openLink) openLink.setAttribute('aria-disabled', 'true');
         }
         img.style.display = 'none';
         var placeholder = document.createElement('div');
         placeholder.setAttribute('role', 'img');
-        placeholder.setAttribute('aria-label', img.alt + ' — Bild nicht verfügbar');
+        placeholder.setAttribute('aria-label', (img.alt || 'Übung') + ' — Bild nicht verfügbar');
         placeholder.style.cssText = 'width:100%;aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;background:#2a2a2a;color:#c0c0c0;font-size:13px;letter-spacing:0.5px;';
         placeholder.textContent = 'Bild nicht verfügbar';
         img.parentNode.insertBefore(placeholder, img);
@@ -339,16 +330,28 @@ const categoryName = categoryMap[slug!] || slug;
       var STORAGE_KEY = 'kraft:plan:v1';
 
       function readPlan() {
+        if (window.kraftPlan && typeof window.kraftPlan.read === 'function') {
+          return window.kraftPlan.read();
+        }
         try {
           var raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
-          if (Array.isArray(raw)) return raw;
-          if (raw && Array.isArray(raw.ids)) return raw.ids; // future format
+          if (Array.isArray(raw)) return raw.slice();
+          if (raw && Array.isArray(raw.current)) return raw.current.slice();
+          if (raw && Array.isArray(raw.ids)) return raw.ids.slice();
         } catch (e) {}
         return [];
       }
 
       function writePlan(ids) {
-        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(ids)); } catch (e) {}
+        if (window.kraftPlan && typeof window.kraftPlan.write === 'function') {
+          return window.kraftPlan.write(ids);
+        }
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
+          return true;
+        } catch (e) {
+          return false;
+        }
       }
 
       function updateBtnState(card, inPlan) {
@@ -374,8 +377,15 @@ const categoryName = categoryMap[slug!] || slug;
       // Initial state
       syncAllCards();
 
-      // Keep cards in sync when the plan changes elsewhere (e.g. lightbox button)
+      // Keep cards in sync when the plan changes elsewhere (e.g. lightbox, other tabs)
       window.addEventListener('plan-changed', syncAllCards);
+      window.addEventListener('pageshow', syncAllCards);
+      window.addEventListener('storage', function (e) {
+        if (e.key === STORAGE_KEY) {
+          syncAllCards();
+          if (window.updatePlanBadge) window.updatePlanBadge();
+        }
+      });
 
       // Button click handling (delegated)
       document.addEventListener('click', function (e) {
@@ -395,7 +405,9 @@ const categoryName = categoryMap[slug!] || slug;
           current.splice(idx, 1);
           nowIn = false;
         }
-        writePlan(current);
+        if (!writePlan(current)) {
+          return;
+        }
         if (card) updateBtnState(card, nowIn);
         window.dispatchEvent(new CustomEvent('plan-changed'));
         if (window.updatePlanBadge) window.updatePlanBadge();
