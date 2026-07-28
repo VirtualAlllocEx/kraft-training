@@ -37,6 +37,14 @@ Local: `public/admin/decap-cms-patched.js`
    - Patched: `const r=zs()(e,"/").split("/")`  
    so leading-slash paths do not produce empty tree segments.
 
+7. **AssetProxy.toBase64 + service worker (Medien Hochladen “Failed to fetch”)**  
+   Stock `toBase64()` always does `fetch(this.url)` on a `blob:` object URL.
+   The site-wide SW claimed `/admin` clients and re-handled those blob fetches,
+   which fails in the SW context → **Failed to fetch** on upload.
+   - Patched `toBase64`: prefer `this.fileObj` + `FileReader` (no blob fetch).
+   - `public/sw.js`: never intercept `blob:` / `data:`; skip `/.netlify/`.
+   - `admin/index.html`: unregister any SW controller so CMS is not claimed.
+
 ## Re-applying after upgrade
 
 1. Download the new stock `decap-cms.js`.

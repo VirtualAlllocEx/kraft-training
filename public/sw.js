@@ -1,6 +1,6 @@
 /* KRAFT.TRAINING service worker — offline support */
 
-const VERSION = 'v5';
+const VERSION = 'v6';
 const PREFIX = 'kraft-training-';
 const SHELL_CACHE = PREFIX + 'shell-' + VERSION;
 const PAGES_CACHE = PREFIX + 'pages-' + VERSION;
@@ -137,6 +137,9 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return;
 
   const url = new URL(request.url);
+
+  /* blob:/data: — Decap AssetProxy.toBase64 uses fetch(blob:...) for uploads */
+  if (url.protocol === 'blob:' || url.protocol === 'data:') return;
 
   /* Same-origin only. Cross-origin requests (Google Fonts, Netlify
      Identity) are never intercepted. */

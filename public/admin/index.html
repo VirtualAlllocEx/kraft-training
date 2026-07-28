@@ -5,13 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Admin | KRAFT.TRAINING</title>
   <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+  <!-- Site SW must not control /admin: it broke Medien uploads by intercepting
+       Decap's fetch(blob:...) in AssetProxy.toBase64 (Failed to fetch).
+       Unregister any controlling SW once, then load the CMS. -->
+  <script>
+    (function () {
+      if (!('serviceWorker' in navigator)) return;
+      navigator.serviceWorker.getRegistrations().then(function (regs) {
+        if (!regs.length) return;
+        return Promise.all(regs.map(function (r) { return r.unregister(); })).then(function () {
+          if (navigator.serviceWorker.controller) {
+            window.location.reload();
+          }
+        });
+      }).catch(function () { /* ignore */ });
+    })();
+  </script>
 </head>
 <body>
-  <!-- Patched Decap CMS 3.14.1:
-       - #7871 selectedFile.path guards + wait for files[0] after upload
-       - listFiles/getFileSha: strip leading "/" so GitHub tree API
-         master:public/... works (master:/public/... 404s → fetch fail)
-       See PATCHES.md -->
+  <!-- Patched Decap CMS 3.14.1 — see PATCHES.md -->
   <script src="/admin/decap-cms-patched.js"></script>
 </body>
 </html>
